@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# SQLite
+*.db
+*.sqlite3
+
+# Nuitka
+build/
+dist/
+*.build
+*.dist
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
