@@ -1,0 +1,9 @@
+{
+    "download_path": "",
+    "theme": "dark",
+    "threads": 4,
+    "write_exif": true,
+    "write_file_date": true,
+    "download_max_quality": true,
+    "continue_download": true
+}
