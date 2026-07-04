@@ -1,27 +1,22 @@
 from pathlib import Path
 
 from PySide6.QtCore import QMetaObject, Qt
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QProgressBar,
     QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
+from gui.download_queue import DownloadQueueWidget
 from media import MediaFile
 from media.download_manager import download_manager
 
 
 class MainWindow(QMainWindow):
-
-    STATUS_COMPLETED = "✓ Завершено"
 
     def __init__(self):
 
@@ -29,8 +24,6 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("VK Archive")
         self.resize(900, 700)
-
-        self._rows: dict[str, int] = {}
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -67,28 +60,10 @@ class MainWindow(QMainWindow):
         self.currentFileLabel.setWordWrap(True)
         layout.addWidget(self.currentFileLabel)
 
-        self.queueTable = QTableWidget(0, 3)
-        self.queueTable.setHorizontalHeaderLabels(
-            [
-                "Файл",
-                "Статус",
-                "Тип",
-            ]
-        )
+        self.queueWidget = DownloadQueueWidget()
+        layout.addWidget(self.queueWidget)
 
-        self.queueTable.horizontalHeader().setStretchLastSection(True)
-
-        self.queueTable.setEditTriggers(
-            QAbstractItemView.EditTrigger.NoEditTriggers
-        )
-
-        self.queueTable.setSelectionMode(
-            QAbstractItemView.SelectionMode.NoSelection
-        )
-
-        self.queueTable.verticalHeader().setVisible(False)
-
-        layout.addWidget(self.queueTable)
+        layout.addStretch()
 
         download_manager.set_progress_callback(
             self._download_progress_callback
@@ -128,45 +103,10 @@ class MainWindow(QMainWindow):
             filename,
         )
 
-        if filename in self._rows:
-
-            row = self._rows[filename]
-
-        else:
-
-            row = self.queueTable.rowCount()
-
-            self.queueTable.insertRow(row)
-
-            self._rows[filename] = row
-
-            self.queueTable.setItem(
-                row,
-                0,
-                QTableWidgetItem(filename),
-            )
-
-            self.queueTable.setItem(
-                row,
-                2,
-                QTableWidgetItem(media_type),
-            )
-
-        status_item = QTableWidgetItem(
-            self.STATUS_COMPLETED
+        self.queueWidget.mark_completed(
+            filename,
+            media_type,
         )
-
-        status_item.setForeground(
-            QColor("#2ecc71")
-        )
-
-        self.queueTable.setItem(
-            row,
-            1,
-            status_item,
-        )
-
-        self.queueTable.scrollToBottom()
 
     def set_download_progress(
         self,
@@ -213,9 +153,7 @@ class MainWindow(QMainWindow):
 
         self.currentFileLabel.clear()
 
-        self.queueTable.setRowCount(0)
-
-        self._rows.clear()
+        self.queueWidget.clear_queue()
 
     def closeEvent(
         self,
