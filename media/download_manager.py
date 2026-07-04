@@ -104,22 +104,38 @@ class DownloadManager:
             headers=headers,
         ) as response:
 
-            if (
-                headers
-                and response.status_code != 206
-            ):
+            if headers and response.status_code != 206:
                 downloaded = 0
                 mode = "wb"
 
             response.raise_for_status()
+
+            expected_size = None
+
+            if response.headers.get("Content-Length"):
+
+                expected_size = int(response.headers["Content-Length"])
+
+                if response.status_code == 206:
+                    expected_size += downloaded
 
             with output.open(mode) as file:
 
                 for chunk in response.iter_bytes(64 * 1024):
 
                     if chunk:
-
                         file.write(chunk)
+
+        if (
+            expected_size is not None
+            and output.stat().st_size != expected_size
+        ):
+
+            output.unlink(missing_ok=True)
+
+            raise IOError(
+                f"Incomplete download: {filename}"
+            )
 
         digest = self._sha256(output)
 
