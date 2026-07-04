@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from models.settings import Settings
+
 
 CONFIG_FILE = Path("config.json")
 
@@ -8,6 +10,8 @@ CONFIG_FILE = Path("config.json")
 class Config:
 
     def __init__(self):
+
+        self.settings = Settings()
 
         self.load()
 
@@ -17,26 +21,19 @@ class Config:
             raise FileNotFoundError("config.json not found")
 
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            self.data = json.load(f)
+            data = json.load(f)
+
+        self.settings = Settings.from_dict(data)
 
     def save(self):
 
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(
-                self.data,
+                self.settings.to_dict(),
                 f,
                 indent=4,
-                ensure_ascii=False
+                ensure_ascii=False,
             )
-
-    def get(self, key, default=None):
-
-        return self.data.get(key, default)
-
-    def set(self, key, value):
-
-        self.data[key] = value
-        self.save()
 
 
 config = Config()
