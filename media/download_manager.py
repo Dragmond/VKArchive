@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
@@ -12,6 +13,8 @@ from utils.config import config
 
 
 class DownloadManager:
+
+    MAX_RETRIES = 3
 
     def __init__(self) -> None:
 
@@ -44,7 +47,7 @@ class DownloadManager:
 
         return sha.hexdigest()
 
-    def download(
+    def _download_once(
         self,
         media: MediaFile,
         destination: Path,
@@ -158,6 +161,37 @@ class DownloadManager:
         self._downloaded_urls[media.url] = output
 
         return output
+
+    def download(
+        self,
+        media: MediaFile,
+        destination: Path,
+    ) -> Path:
+
+        last_error: Exception | None = None
+
+        for attempt in range(self.MAX_RETRIES):
+
+            try:
+
+                return self._download_once(
+                    media,
+                    destination,
+                )
+
+            except (
+                httpx.HTTPError,
+                IOError,
+            ) as error:
+
+                last_error = error
+
+                if attempt + 1 == self.MAX_RETRIES:
+                    break
+
+                time.sleep(2 ** attempt)
+
+        raise last_error
 
     def download_many(
         self,
