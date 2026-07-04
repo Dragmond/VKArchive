@@ -21,27 +21,39 @@ class Database:
 
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS settings(
+
             key TEXT PRIMARY KEY,
+
             value TEXT NOT NULL
         )
         """)
 
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS downloads(
+
             id INTEGER PRIMARY KEY,
+
             url TEXT,
+
             sha256 TEXT,
+
             filename TEXT
         )
         """)
 
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages(
+
             id INTEGER PRIMARY KEY,
+
             peer_id INTEGER NOT NULL,
+
             sender_id INTEGER NOT NULL,
+
             date INTEGER NOT NULL,
+
             text TEXT NOT NULL,
+
             outgoing INTEGER NOT NULL
         )
         """)
@@ -131,7 +143,7 @@ class Database:
 
         self.cursor.execute(
             """
-            INSERT OR REPLACE INTO messages(
+            INSERT INTO messages(
                 id,
                 peer_id,
                 sender_id,
@@ -140,6 +152,13 @@ class Database:
                 outgoing
             )
             VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id)
+            DO UPDATE SET
+                peer_id = excluded.peer_id,
+                sender_id = excluded.sender_id,
+                date = excluded.date,
+                text = excluded.text,
+                outgoing = excluded.outgoing
             """,
             (
                 message_id,
