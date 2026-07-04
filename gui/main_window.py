@@ -1,12 +1,18 @@
+from pathlib import Path
+
+from PySide6.QtCore import QMetaObject, Qt
 from PySide6.QtWidgets import (
-    QMainWindow,
-    QWidget,
+    QHBoxLayout,
     QLabel,
+    QMainWindow,
+    QProgressBar,
     QPushButton,
     QVBoxLayout,
-    QHBoxLayout,
-    QProgressBar,
+    QWidget,
 )
+
+from media import MediaFile
+from media.download_manager import download_manager
 
 
 class MainWindow(QMainWindow):
@@ -61,13 +67,40 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.progressBar)
 
-        self.currentFileLabel = QLabel("")
+        self.currentFileLabel = QLabel()
 
         self.currentFileLabel.setWordWrap(True)
 
         layout.addWidget(self.currentFileLabel)
 
         layout.addStretch()
+
+        download_manager.set_progress_callback(
+            self._download_progress_callback
+        )
+
+    def _download_progress_callback(
+        self,
+        current: int,
+        total: int,
+        media: MediaFile,
+    ) -> None:
+
+        filename = media.filename
+
+        if not filename:
+
+            filename = Path(media.url).name
+
+        QMetaObject.invokeMethod(
+            self,
+            lambda: self.set_download_progress(
+                current,
+                total,
+                filename,
+            ),
+            Qt.ConnectionType.QueuedConnection,
+        )
 
     def set_download_progress(
         self,
@@ -109,3 +142,9 @@ class MainWindow(QMainWindow):
         self.progressLabel.setText("Готов")
 
         self.currentFileLabel.clear()
+
+    def closeEvent(self, event):
+
+        download_manager.set_progress_callback(None)
+
+        super().closeEvent(event)
