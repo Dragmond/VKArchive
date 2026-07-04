@@ -19,7 +19,6 @@ class DownloadManager:
             follow_redirects=True,
         )
 
-        # Кэш уже скачанных файлов по URL в рамках текущего экспорта
         self._downloaded_urls: dict[str, Path] = {}
 
     def download(
@@ -28,8 +27,10 @@ class DownloadManager:
         destination: Path,
     ) -> Path:
 
-        if media.url in self._downloaded_urls:
-            return self._downloaded_urls[media.url]
+        cached = self._downloaded_urls.get(media.url)
+
+        if cached is not None and cached.exists():
+            return cached
 
         destination.mkdir(
             parents=True,
@@ -112,6 +113,8 @@ class DownloadManager:
         self._downloaded_urls.clear()
 
     def close(self) -> None:
+
+        self.clear_cache()
 
         self._client.close()
 
