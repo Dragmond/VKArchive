@@ -97,6 +97,11 @@ class MainWindow(QMainWindow):
         media_type: str,
     ) -> None:
 
+        self.queueWidget.mark_downloading(
+            filename,
+            media_type,
+        )
+
         self.set_download_progress(
             current,
             total,
