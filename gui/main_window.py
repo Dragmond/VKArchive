@@ -2,11 +2,14 @@ from pathlib import Path
 
 from PySide6.QtCore import QMetaObject, Qt
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QProgressBar,
     QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -25,55 +28,57 @@ class MainWindow(QMainWindow):
         self.resize(900, 700)
 
         central = QWidget()
-
         self.setCentralWidget(central)
 
         layout = QVBoxLayout(central)
 
         title = QLabel("VK Archive")
-
         title.setStyleSheet("""
             font-size:26px;
             font-weight:bold;
         """)
-
         layout.addWidget(title)
 
         self.loginButton = QPushButton("Войти в VK")
-
         layout.addWidget(self.loginButton)
 
         progressLayout = QHBoxLayout()
 
         self.progressLabel = QLabel("Готов")
-
         progressLayout.addWidget(self.progressLabel)
 
         progressLayout.addStretch()
 
         self.progressPercent = QLabel("0%")
-
         progressLayout.addWidget(self.progressPercent)
 
         layout.addLayout(progressLayout)
 
         self.progressBar = QProgressBar()
-
-        self.progressBar.setMinimum(0)
-
-        self.progressBar.setMaximum(100)
-
-        self.progressBar.setValue(0)
-
+        self.progressBar.setRange(0, 100)
         layout.addWidget(self.progressBar)
 
         self.currentFileLabel = QLabel()
-
         self.currentFileLabel.setWordWrap(True)
-
         layout.addWidget(self.currentFileLabel)
 
-        layout.addStretch()
+        self.queueTable = QTableWidget(0, 3)
+        self.queueTable.setHorizontalHeaderLabels(
+            [
+                "Файл",
+                "Статус",
+                "Тип",
+            ]
+        )
+        self.queueTable.horizontalHeader().setStretchLastSection(True)
+        self.queueTable.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+        self.queueTable.setSelectionMode(
+            QAbstractItemView.SelectionMode.NoSelection
+        )
+
+        layout.addWidget(self.queueTable)
 
         download_manager.set_progress_callback(
             self._download_progress_callback
@@ -86,21 +91,56 @@ class MainWindow(QMainWindow):
         media: MediaFile,
     ) -> None:
 
-        filename = media.filename
-
-        if not filename:
-
-            filename = Path(media.url).name
+        filename = media.filename or Path(media.url).name
 
         QMetaObject.invokeMethod(
             self,
-            lambda: self.set_download_progress(
+            lambda: self._update_progress(
                 current,
                 total,
                 filename,
+                media.type,
             ),
             Qt.ConnectionType.QueuedConnection,
         )
+
+    def _update_progress(
+        self,
+        current: int,
+        total: int,
+        filename: str,
+        media_type: str,
+    ) -> None:
+
+        self.set_download_progress(
+            current,
+            total,
+            filename,
+        )
+
+        row = self.queueTable.rowCount()
+
+        self.queueTable.insertRow(row)
+
+        self.queueTable.setItem(
+            row,
+            0,
+            QTableWidgetItem(filename),
+        )
+
+        self.queueTable.setItem(
+            row,
+            1,
+            QTableWidgetItem("✓ Завершено"),
+        )
+
+        self.queueTable.setItem(
+            row,
+            2,
+            QTableWidgetItem(media_type),
+        )
+
+        self.queueTable.scrollToBottom()
 
     def set_download_progress(
         self,
@@ -142,6 +182,8 @@ class MainWindow(QMainWindow):
         self.progressLabel.setText("Готов")
 
         self.currentFileLabel.clear()
+
+        self.queueTable.setRowCount(0)
 
     def closeEvent(self, event):
 
