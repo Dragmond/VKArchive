@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
 
 from media import MediaFile
+from utils.config import config
 
 
 class DownloadManager:
@@ -34,12 +36,15 @@ class DownloadManager:
 
             path = urlparse(media.url).path
 
-            filename = Path(path).name
-
-            if not filename:
-                filename = "file.bin"
+            filename = Path(path).name or "file.bin"
 
         output = destination / filename
+
+        if (
+            config.settings.continue_download
+            and output.exists()
+        ):
+            return output
 
         with self._client.stream(
             "GET",
@@ -50,7 +55,7 @@ class DownloadManager:
 
             with output.open("wb") as file:
 
-                for chunk in response.iter_bytes(1024 * 64):
+                for chunk in response.iter_bytes(64 * 1024):
 
                     if chunk:
 
@@ -66,14 +71,30 @@ class DownloadManager:
 
         result: list[Path] = []
 
-        for media in files:
+        workers = max(
+            1,
+            config.settings.threads,
+        )
 
-            result.append(
-                self.download(
+        with ThreadPoolExecutor(
+            max_workers=workers,
+            thread_name_prefix="download",
+        ) as executor:
+
+            futures = [
+                executor.submit(
+                    self.download,
                     media,
                     destination,
                 )
-            )
+                for media in files
+            ]
+
+            for future in as_completed(futures):
+
+                result.append(
+                    future.result()
+                )
 
         return result
 
