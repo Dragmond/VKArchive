@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
@@ -20,6 +21,28 @@ class DownloadManager:
         )
 
         self._downloaded_urls: dict[str, Path] = {}
+
+        self._hash_cache: dict[str, Path] = {}
+
+    def _sha256(
+        self,
+        path: Path,
+    ) -> str:
+
+        sha = hashlib.sha256()
+
+        with path.open("rb") as file:
+
+            while True:
+
+                chunk = file.read(1024 * 1024)
+
+                if not chunk:
+                    break
+
+                sha.update(chunk)
+
+        return sha.hexdigest()
 
     def download(
         self,
@@ -51,7 +74,12 @@ class DownloadManager:
             config.settings.continue_download
             and output.exists()
         ):
+            digest = self._sha256(output)
+
             self._downloaded_urls[media.url] = output
+
+            self._hash_cache[digest] = output
+
             return output
 
         with self._client.stream(
@@ -68,6 +96,24 @@ class DownloadManager:
                     if chunk:
 
                         file.write(chunk)
+
+        digest = self._sha256(output)
+
+        duplicate = self._hash_cache.get(digest)
+
+        if (
+            duplicate is not None
+            and duplicate.exists()
+            and duplicate != output
+        ):
+
+            output.unlink(missing_ok=True)
+
+            self._downloaded_urls[media.url] = duplicate
+
+            return duplicate
+
+        self._hash_cache[digest] = output
 
         self._downloaded_urls[media.url] = output
 
@@ -111,6 +157,8 @@ class DownloadManager:
     def clear_cache(self) -> None:
 
         self._downloaded_urls.clear()
+
+        self._hash_cache.clear()
 
     def close(self) -> None:
 
