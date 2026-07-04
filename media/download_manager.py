@@ -19,11 +19,17 @@ class DownloadManager:
             follow_redirects=True,
         )
 
+        # Кэш уже скачанных файлов по URL в рамках текущего экспорта
+        self._downloaded_urls: dict[str, Path] = {}
+
     def download(
         self,
         media: MediaFile,
         destination: Path,
     ) -> Path:
+
+        if media.url in self._downloaded_urls:
+            return self._downloaded_urls[media.url]
 
         destination.mkdir(
             parents=True,
@@ -44,6 +50,7 @@ class DownloadManager:
             config.settings.continue_download
             and output.exists()
         ):
+            self._downloaded_urls[media.url] = output
             return output
 
         with self._client.stream(
@@ -60,6 +67,8 @@ class DownloadManager:
                     if chunk:
 
                         file.write(chunk)
+
+        self._downloaded_urls[media.url] = output
 
         return output
 
@@ -97,6 +106,10 @@ class DownloadManager:
                 )
 
         return result
+
+    def clear_cache(self) -> None:
+
+        self._downloaded_urls.clear()
 
     def close(self) -> None:
 
