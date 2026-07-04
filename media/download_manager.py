@@ -82,14 +82,38 @@ class DownloadManager:
 
             return output
 
+        headers = {}
+
+        mode = "wb"
+
+        downloaded = 0
+
+        if output.exists():
+
+            downloaded = output.stat().st_size
+
+            if downloaded > 0:
+
+                headers["Range"] = f"bytes={downloaded}-"
+
+                mode = "ab"
+
         with self._client.stream(
             "GET",
             media.url,
+            headers=headers,
         ) as response:
+
+            if (
+                headers
+                and response.status_code != 206
+            ):
+                downloaded = 0
+                mode = "wb"
 
             response.raise_for_status()
 
-            with output.open("wb") as file:
+            with output.open(mode) as file:
 
                 for chunk in response.iter_bytes(64 * 1024):
 
