@@ -4,12 +4,16 @@ import hashlib
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Callable
 from urllib.parse import urlparse
 
 import httpx
 
 from media import MediaFile
 from utils.config import config
+
+
+ProgressCallback = Callable[[int, int, MediaFile], None]
 
 
 class DownloadManager:
@@ -26,6 +30,31 @@ class DownloadManager:
         self._downloaded_urls: dict[str, Path] = {}
 
         self._hash_cache: dict[str, Path] = {}
+
+        self._progress_callback: ProgressCallback | None = None
+
+    def set_progress_callback(
+        self,
+        callback: ProgressCallback | None,
+    ) -> None:
+
+        self._progress_callback = callback
+
+    def _notify_progress(
+        self,
+        current: int,
+        total: int,
+        media: MediaFile,
+    ) -> None:
+
+        if self._progress_callback is None:
+            return
+
+        self._progress_callback(
+            current,
+            total,
+            media,
+        )
 
     def _sha256(
         self,
@@ -117,14 +146,18 @@ class DownloadManager:
 
             if response.headers.get("Content-Length"):
 
-                expected_size = int(response.headers["Content-Length"])
+                expected_size = int(
+                    response.headers["Content-Length"]
+                )
 
                 if response.status_code == 206:
                     expected_size += downloaded
 
             with output.open(mode) as file:
 
-                for chunk in response.iter_bytes(64 * 1024):
+                for chunk in response.iter_bytes(
+                    64 * 1024
+                ):
 
                     if chunk:
                         file.write(chunk)
@@ -189,7 +222,7 @@ class DownloadManager:
                 if attempt + 1 == self.MAX_RETRIES:
                     break
 
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
 
         raise last_error
 
@@ -206,24 +239,38 @@ class DownloadManager:
             config.settings.threads,
         )
 
+        total = len(files)
+
+        completed = 0
+
         with ThreadPoolExecutor(
             max_workers=workers,
             thread_name_prefix="download",
         ) as executor:
 
-            futures = [
+            future_map = {
                 executor.submit(
                     self.download,
                     media,
                     destination,
-                )
+                ): media
                 for media in files
-            ]
+            }
 
-            for future in as_completed(futures):
+            for future in as_completed(future_map):
+
+                media = future_map[future]
 
                 result.append(
                     future.result()
+                )
+
+                completed += 1
+
+                self._notify_progress(
+                    completed,
+                    total,
+                    media,
                 )
 
         return result
