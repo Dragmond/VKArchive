@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from database.database import db
 from vk.client import client
 
 
@@ -88,6 +89,39 @@ class MessagesService:
             offset += page_size
 
         return result
+
+    def sync(
+        self,
+        peer_id: int,
+    ) -> list[Message]:
+        """
+        Загружает историю и сохраняет только новые сообщения.
+        """
+
+        last_message_id = db.get_last_message_id(peer_id)
+
+        new_messages: list[Message] = []
+
+        for message in reversed(self.get_all(peer_id)):
+
+            if (
+                last_message_id is not None
+                and message.id <= last_message_id
+            ):
+                continue
+
+            db.save_message(
+                message_id=message.id,
+                peer_id=message.peer_id,
+                sender_id=message.from_id,
+                date=message.date,
+                text=message.text,
+                outgoing=message.out,
+            )
+
+            new_messages.append(message)
+
+        return new_messages
 
 
 messages = MessagesService()
