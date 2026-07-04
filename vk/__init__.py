@@ -16,7 +16,7 @@ class SessionUser:
 class SessionManager:
     """
     Управляет текущей VK-сессией приложения.
-    Хранит токен и информацию о текущем пользователе.
+    Хранит токен и информацию об авторизованном пользователе.
     """
 
     TOKEN_KEY = "vk_access_token"
@@ -76,7 +76,6 @@ class SessionManager:
     def logout(self) -> None:
 
         self._token = None
-
         self._user = None
 
         db.delete_setting(self.TOKEN_KEY)
