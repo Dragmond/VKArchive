@@ -7,8 +7,8 @@ import httpx
 from vk import session
 
 
-API_VERSION = "5.199"
 API_URL = "https://api.vk.com/method/"
+API_VERSION = "5.199"
 
 
 class VKError(Exception):
@@ -16,18 +16,14 @@ class VKError(Exception):
 
 
 class VKAuthorizationError(VKError):
-    """Недействительный или отсутствующий токен."""
+    """Ошибка авторизации."""
 
 
 @dataclass(slots=True)
 class VKUser:
-
     id: int
-
     first_name: str
-
     last_name: str
-
     photo: str | None = None
 
 
@@ -37,14 +33,14 @@ class VKClient:
 
         self._client = httpx.Client(
             base_url=API_URL,
-            timeout=30.0,
+            timeout=30,
             follow_redirects=True,
         )
 
-    def _request(self, method: str, **params):
+    def request(self, method: str, **params):
 
         if not session.authorized:
-            raise VKAuthorizationError("VK token is missing.")
+            raise VKAuthorizationError("VK access token is missing.")
 
         params["access_token"] = session.token
         params["v"] = API_VERSION
@@ -59,30 +55,29 @@ class VKClient:
         data = response.json()
 
         if "error" in data:
-
             error = data["error"]
 
             raise VKAuthorizationError(
-                f'VK API error {error["error_code"]}: {error["error_msg"]}'
+                f'VK API {error["error_code"]}: {error["error_msg"]}'
             )
 
         return data["response"]
 
     def validate(self) -> VKUser:
 
-        response = self._request(
+        user = self.request(
             "users.get",
             fields="photo_200",
         )[0]
 
         return VKUser(
-            id=response["id"],
-            first_name=response["first_name"],
-            last_name=response["last_name"],
-            photo=response.get("photo_200"),
+            id=user["id"],
+            first_name=user["first_name"],
+            last_name=user["last_name"],
+            photo=user.get("photo_200"),
         )
 
-    def close(self) -> None:
+    def close(self):
 
         self._client.close()
 
