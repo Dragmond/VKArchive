@@ -17,7 +17,7 @@ class DownloadQueueWidget(QTableWidget):
     STATUS_FAILED = "Ошибка"
 
     STATUS_COLORS = {
-        STATUS_WAITING: QColor("#b0b0b0"),
+        STATUS_WAITING: QColor("#9e9e9e"),
         STATUS_DOWNLOADING: QColor("#4ea3ff"),
         STATUS_COMPLETED: QColor("#39c16c"),
         STATUS_FAILED: QColor("#ff5555"),
@@ -78,8 +78,10 @@ class DownloadQueueWidget(QTableWidget):
         media_type: str,
     ) -> int:
 
-        if filename in self._rows:
-            return self._rows[filename]
+        row = self._rows.get(filename)
+
+        if row is not None:
+            return row
 
         row = self.rowCount()
 
@@ -99,23 +101,18 @@ class DownloadQueueWidget(QTableWidget):
             QTableWidgetItem(media_type),
         )
 
-        self.set_status(
-            filename,
+        self._set_status(
+            row,
             self.STATUS_WAITING,
         )
 
         return row
 
-    def set_status(
+    def _set_status(
         self,
-        filename: str,
+        row: int,
         status: str,
     ) -> None:
-
-        row = self._rows.get(filename)
-
-        if row is None:
-            return
 
         item = QTableWidgetItem(status)
 
@@ -134,19 +131,32 @@ class DownloadQueueWidget(QTableWidget):
 
         self.scrollToBottom()
 
+    def update_status(
+        self,
+        filename: str,
+        media_type: str,
+        status: str,
+    ) -> None:
+
+        row = self.ensure_item(
+            filename,
+            media_type,
+        )
+
+        self._set_status(
+            row,
+            status,
+        )
+
     def mark_waiting(
         self,
         filename: str,
         media_type: str,
     ) -> None:
 
-        self.ensure_item(
+        self.update_status(
             filename,
             media_type,
-        )
-
-        self.set_status(
-            filename,
             self.STATUS_WAITING,
         )
 
@@ -156,13 +166,9 @@ class DownloadQueueWidget(QTableWidget):
         media_type: str,
     ) -> None:
 
-        self.ensure_item(
+        self.update_status(
             filename,
             media_type,
-        )
-
-        self.set_status(
-            filename,
             self.STATUS_DOWNLOADING,
         )
 
@@ -172,13 +178,9 @@ class DownloadQueueWidget(QTableWidget):
         media_type: str,
     ) -> None:
 
-        self.ensure_item(
+        self.update_status(
             filename,
             media_type,
-        )
-
-        self.set_status(
-            filename,
             self.STATUS_COMPLETED,
         )
 
@@ -188,12 +190,8 @@ class DownloadQueueWidget(QTableWidget):
         media_type: str,
     ) -> None:
 
-        self.ensure_item(
+        self.update_status(
             filename,
             media_type,
-        )
-
-        self.set_status(
-            filename,
             self.STATUS_FAILED,
         )
