@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
 
             return
 
-        self.toolbarWidget.loginButton.setEnabled(False)
+        self.toolbarWidget.set_export_running(True)
 
         self.exportThread = QThread(self)
 
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
         result,
     ) -> None:
 
-        self.toolbarWidget.loginButton.setEnabled(True)
+        self.toolbarWidget.set_export_running(False)
 
         self.statusWidget.set_operation(
             "Экспорт завершён"
@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
         error: str,
     ) -> None:
 
-        self.toolbarWidget.loginButton.setEnabled(True)
+        self.toolbarWidget.set_export_running(False)
 
         self.statusWidget.set_operation(
             "Ошибка экспорта"
