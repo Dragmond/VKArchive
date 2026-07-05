@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFileDialog,
     QMainWindow,
+    QMessageBox,
     QVBoxLayout,
     QWidget,
 )
@@ -10,6 +14,7 @@ from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
 from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
+from media.export_session import ExportSession
 
 
 class MainWindow(QMainWindow):
@@ -20,6 +25,8 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("VK Archive")
         self.resize(900, 700)
+
+        self.exportSession: ExportSession | None = None
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -53,6 +60,32 @@ class MainWindow(QMainWindow):
         self.eventBridge.exportEventChanged.connect(
             self._update_export_statistics,
             Qt.ConnectionType.QueuedConnection,
+        )
+
+        self.toolbarWidget.loginButton.clicked.connect(
+            self._create_export_session,
+        )
+
+    def _create_export_session(self) -> None:
+
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Выберите папку для архива",
+        )
+
+        if not directory:
+            return
+
+        self.exportSession = ExportSession(
+            Path(directory),
+        )
+
+        self.eventBridge.connect_session(
+            self.exportSession,
+        )
+
+        self.statusWidget.set_operation(
+            "Сессия экспорта создана"
         )
 
     def _update_state(
