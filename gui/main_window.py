@@ -1,8 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QLabel,
     QMainWindow,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -10,6 +8,7 @@ from PySide6.QtWidgets import (
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
+from gui.toolbar_widget import ToolbarWidget
 
 
 class MainWindow(QMainWindow):
@@ -26,21 +25,16 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout(central)
 
-        title = QLabel("VK Archive")
-        title.setStyleSheet("""
-            font-size:26px;
-            font-weight:bold;
-        """)
+        self.toolbarWidget = ToolbarWidget()
 
-        layout.addWidget(title)
-
-        self.loginButton = QPushButton("Войти в VK")
-        layout.addWidget(self.loginButton)
+        layout.addWidget(self.toolbarWidget)
 
         self.progressWidget = DownloadProgressWidget()
+
         layout.addWidget(self.progressWidget)
 
         self.queueWidget = DownloadQueueWidget()
+
         layout.addWidget(self.queueWidget)
 
         layout.addStretch()
