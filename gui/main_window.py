@@ -69,6 +69,63 @@ class MainWindow(QMainWindow):
             self._download_progress_callback
         )
 
+        download_manager.set_state_callback(
+            self._download_state_callback
+        )
+
+    def _download_state_callback(
+        self,
+        state: str,
+        media: MediaFile,
+    ) -> None:
+
+        filename = media.filename or Path(media.url).name
+
+        QMetaObject.invokeMethod(
+            self,
+            lambda: self._update_state(
+                state,
+                filename,
+                media.type,
+            ),
+            Qt.ConnectionType.QueuedConnection,
+        )
+
+    def _update_state(
+        self,
+        state: str,
+        filename: str,
+        media_type: str,
+    ) -> None:
+
+        if state == "queued":
+
+            self.queueWidget.mark_waiting(
+                filename,
+                media_type,
+            )
+
+        elif state == "started":
+
+            self.queueWidget.mark_downloading(
+                filename,
+                media_type,
+            )
+
+        elif state == "completed":
+
+            self.queueWidget.mark_completed(
+                filename,
+                media_type,
+            )
+
+        elif state == "failed":
+
+            self.queueWidget.mark_failed(
+                filename,
+                media_type,
+            )
+
     def _download_progress_callback(
         self,
         current: int,
@@ -80,37 +137,12 @@ class MainWindow(QMainWindow):
 
         QMetaObject.invokeMethod(
             self,
-            lambda: self._update_progress(
+            lambda: self.set_download_progress(
                 current,
                 total,
                 filename,
-                media.type,
             ),
             Qt.ConnectionType.QueuedConnection,
-        )
-
-    def _update_progress(
-        self,
-        current: int,
-        total: int,
-        filename: str,
-        media_type: str,
-    ) -> None:
-
-        self.queueWidget.mark_downloading(
-            filename,
-            media_type,
-        )
-
-        self.set_download_progress(
-            current,
-            total,
-            filename,
-        )
-
-        self.queueWidget.mark_completed(
-            filename,
-            media_type,
         )
 
     def set_download_progress(
@@ -166,5 +198,6 @@ class MainWindow(QMainWindow):
     ):
 
         download_manager.set_progress_callback(None)
+        download_manager.set_state_callback(None)
 
         super().closeEvent(event)
