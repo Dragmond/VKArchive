@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, Signal
 
 from media import MediaFile
 from media.download_manager import download_manager
+from media.export_session import ExportSession
 
 
 class DownloadEventBridge(QObject):
@@ -19,6 +20,8 @@ class DownloadEventBridge(QObject):
     def __init__(self, parent=None):
 
         super().__init__(parent)
+
+        self._session: ExportSession | None = None
 
         download_manager.set_progress_callback(
             self._progress_callback
@@ -37,21 +40,35 @@ class DownloadEventBridge(QObject):
             media.url
         ).name
 
-    def connect_exporter(
+    def connect_session(
         self,
-        exporter,
+        session: ExportSession,
     ) -> None:
 
-        exporter.set_event_callback(
+        if self._session is session:
+            return
+
+        if self._session is not None:
+            self.disconnect_session()
+
+        self._session = session
+
+        self._session.set_event_callback(
             self._export_callback
         )
 
-    def disconnect_exporter(
+    def disconnect_session(
         self,
-        exporter,
     ) -> None:
 
-        exporter.set_event_callback(None)
+        if self._session is None:
+            return
+
+        self._session.set_event_callback(
+            None,
+        )
+
+        self._session = None
 
     def _progress_callback(
         self,
@@ -89,7 +106,16 @@ class DownloadEventBridge(QObject):
             value,
         )
 
-    def disconnect_manager(self) -> None:
+    def disconnect_manager(
+        self,
+    ) -> None:
 
-        download_manager.set_progress_callback(None)
-        download_manager.set_state_callback(None)
+        self.disconnect_session()
+
+        download_manager.set_progress_callback(
+            None
+        )
+
+        download_manager.set_state_callback(
+            None
+        )
