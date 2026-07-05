@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtWidgets import QMessageBox
 
 from gui.export_controller import ExportController
+from vk.auth import VKAuthService
 
 
 class MainWindowExportMixin:
@@ -26,6 +29,26 @@ class MainWindowExportMixin:
         self.toolbarWidget.cancelButton.clicked.connect(
             self._cancel_export,
         )
+
+        self.authService = VKAuthService(
+            Path("config.json"),
+        )
+
+        self._update_login_button()
+
+    def _update_login_button(self) -> None:
+
+        if self.authService.has_session():
+
+            self.toolbarWidget.loginButton.setText(
+                "Выйти"
+            )
+
+        else:
+
+            self.toolbarWidget.loginButton.setText(
+                "Войти в VK"
+            )
 
     def start_export(
         self,
@@ -57,10 +80,9 @@ class MainWindowExportMixin:
 
     def _cancel_export(self) -> None:
 
-        if not self.exportController.is_running:
-            return
+        if self.exportController.is_running:
 
-        self.exportController.cancel()
+            self.exportController.cancel()
 
     def _export_finished(
         self,
