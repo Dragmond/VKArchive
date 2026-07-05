@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from PySide6.QtCore import QMetaObject, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
@@ -9,10 +7,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
-from media import MediaFile
-from media.download_manager import download_manager
 
 
 class MainWindow(QMainWindow):
@@ -25,13 +22,11 @@ class MainWindow(QMainWindow):
         self.resize(900, 700)
 
         central = QWidget()
-
         self.setCentralWidget(central)
 
         layout = QVBoxLayout(central)
 
         title = QLabel("VK Archive")
-
         title.setStyleSheet("""
             font-size:26px;
             font-weight:bold;
@@ -40,42 +35,25 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
 
         self.loginButton = QPushButton("Войти в VK")
-
         layout.addWidget(self.loginButton)
 
         self.progressWidget = DownloadProgressWidget()
-
         layout.addWidget(self.progressWidget)
 
         self.queueWidget = DownloadQueueWidget()
-
         layout.addWidget(self.queueWidget)
 
         layout.addStretch()
 
-        download_manager.set_progress_callback(
-            self._download_progress_callback
+        self.eventBridge = DownloadEventBridge(self)
+
+        self.eventBridge.progressChanged.connect(
+            self.progressWidget.set_progress,
+            Qt.ConnectionType.QueuedConnection,
         )
 
-        download_manager.set_state_callback(
-            self._download_state_callback
-        )
-
-    def _download_state_callback(
-        self,
-        state: str,
-        media: MediaFile,
-    ) -> None:
-
-        filename = media.filename or Path(media.url).name
-
-        QMetaObject.invokeMethod(
-            self,
-            lambda: self._update_state(
-                state,
-                filename,
-                media.type,
-            ),
+        self.eventBridge.stateChanged.connect(
+            self._update_state,
             Qt.ConnectionType.QueuedConnection,
         )
 
@@ -114,25 +92,6 @@ class MainWindow(QMainWindow):
                 media_type,
             )
 
-    def _download_progress_callback(
-        self,
-        current: int,
-        total: int,
-        media: MediaFile,
-    ) -> None:
-
-        filename = media.filename or Path(media.url).name
-
-        QMetaObject.invokeMethod(
-            self,
-            lambda: self.progressWidget.set_progress(
-                current,
-                total,
-                filename,
-            ),
-            Qt.ConnectionType.QueuedConnection,
-        )
-
     def reset_download_progress(self) -> None:
 
         self.progressWidget.reset()
@@ -144,7 +103,6 @@ class MainWindow(QMainWindow):
         event,
     ):
 
-        download_manager.set_progress_callback(None)
-        download_manager.set_state_callback(None)
+        self.eventBridge.disconnect_manager()
 
         super().closeEvent(event)
