@@ -14,6 +14,7 @@ from utils.config import config
 
 
 ProgressCallback = Callable[[int, int, MediaFile], None]
+StateCallback = Callable[[str, MediaFile], None]
 
 
 class DownloadManager:
@@ -33,12 +34,21 @@ class DownloadManager:
 
         self._progress_callback: ProgressCallback | None = None
 
+        self._state_callback: StateCallback | None = None
+
     def set_progress_callback(
         self,
         callback: ProgressCallback | None,
     ) -> None:
 
         self._progress_callback = callback
+
+    def set_state_callback(
+        self,
+        callback: StateCallback | None,
+    ) -> None:
+
+        self._state_callback = callback
 
     def _notify_progress(
         self,
@@ -53,6 +63,20 @@ class DownloadManager:
         self._progress_callback(
             current,
             total,
+            media,
+        )
+
+    def _notify_state(
+        self,
+        state: str,
+        media: MediaFile,
+    ) -> None:
+
+        if self._state_callback is None:
+            return
+
+        self._state_callback(
+            state,
             media,
         )
 
@@ -203,14 +227,26 @@ class DownloadManager:
 
         last_error: Exception | None = None
 
+        self._notify_state(
+            "started",
+            media,
+        )
+
         for attempt in range(self.MAX_RETRIES):
 
             try:
 
-                return self._download_once(
+                result = self._download_once(
                     media,
                     destination,
                 )
+
+                self._notify_state(
+                    "completed",
+                    media,
+                )
+
+                return result
 
             except (
                 httpx.HTTPError,
@@ -220,9 +256,17 @@ class DownloadManager:
                 last_error = error
 
                 if attempt + 1 == self.MAX_RETRIES:
+
+                    self._notify_state(
+                        "failed",
+                        media,
+                    )
+
                     break
 
-                time.sleep(2**attempt)
+                time.sleep(
+                    2**attempt
+                )
 
         raise last_error
 
@@ -243,6 +287,13 @@ class DownloadManager:
 
         completed = 0
 
+        for media in files:
+
+            self._notify_state(
+                "queued",
+                media,
+            )
+
         with ThreadPoolExecutor(
             max_workers=workers,
             thread_name_prefix="download",
@@ -257,9 +308,13 @@ class DownloadManager:
                 for media in files
             }
 
-            for future in as_completed(future_map):
+            for future in as_completed(
+                future_map
+            ):
 
-                media = future_map[future]
+                media = future_map[
+                    future
+                ]
 
                 result.append(
                     future.result()
