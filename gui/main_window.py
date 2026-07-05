@@ -50,6 +50,11 @@ class MainWindow(QMainWindow):
             Qt.ConnectionType.QueuedConnection,
         )
 
+        self.eventBridge.exportEventChanged.connect(
+            self._update_export_statistics,
+            Qt.ConnectionType.QueuedConnection,
+        )
+
     def _update_state(
         self,
         state: str,
@@ -99,6 +104,30 @@ class MainWindow(QMainWindow):
 
             self.statusWidget.set_operation(
                 f"Ошибка загрузки: {filename}"
+            )
+
+    def _update_export_statistics(
+        self,
+        event: str,
+        value: int,
+    ) -> None:
+
+        if event == "dialog":
+
+            self.statusWidget.increment_dialogs(
+                value,
+            )
+
+        elif event == "message":
+
+            self.statusWidget.increment_messages(
+                value,
+            )
+
+        elif event == "file":
+
+            self.statusWidget.increment_files(
+                value,
             )
 
     def reset_download_progress(self) -> None:
