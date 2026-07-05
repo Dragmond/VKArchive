@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -9,11 +10,36 @@ from media.download_manager import download_manager
 from vk.messages import Message
 
 
+ExportEventCallback = Callable[[str, int], None]
+
+
 class ArchiveExporter:
 
     def __init__(self, root: Path) -> None:
 
         self._root = root
+
+        self._event_callback: ExportEventCallback | None = None
+
+    def set_event_callback(
+        self,
+        callback: ExportEventCallback | None,
+    ) -> None:
+
+        self._event_callback = callback
+
+    def _emit(
+        self,
+        event: str,
+        value: int = 1,
+    ) -> None:
+
+        if self._event_callback is not None:
+
+            self._event_callback(
+                event,
+                value,
+            )
 
     @staticmethod
     def _safe_name(name: str) -> str:
@@ -37,6 +63,8 @@ class ArchiveExporter:
             parents=True,
             exist_ok=True,
         )
+
+        self._emit("dialog")
 
         output = folder / "messages.html"
 
@@ -64,6 +92,8 @@ class ArchiveExporter:
         ]
 
         for message in messages:
+
+            self._emit("message")
 
             timestamp = datetime.fromtimestamp(
                 message.date
@@ -104,6 +134,8 @@ class ArchiveExporter:
                     filename = escape(
                         media.filename or media.url.split("/")[-1]
                     )
+
+                    self._emit("file")
 
                     if media.type == "photo":
 
