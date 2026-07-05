@@ -1,10 +1,9 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
-    QMessageBox,
     QVBoxLayout,
     QWidget,
 )
@@ -12,13 +11,16 @@ from PySide6.QtWidgets import (
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
-from gui.export_worker import ExportWorker
+from gui.main_window_export import MainWindowExportMixin
 from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
 from media.export_session import ExportSession
 
 
-class MainWindow(QMainWindow):
+class MainWindow(
+    QMainWindow,
+    MainWindowExportMixin,
+):
 
     def __init__(self):
 
@@ -28,8 +30,6 @@ class MainWindow(QMainWindow):
         self.resize(900, 700)
 
         self.exportSession: ExportSession | None = None
-        self.exportThread: QThread | None = None
-        self.exportWorker: ExportWorker | None = None
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -69,6 +69,8 @@ class MainWindow(QMainWindow):
             self._create_export_session,
         )
 
+        self._setup_export_controller()
+
     def _create_export_session(self) -> None:
 
         directory = QFileDialog.getExistingDirectory(
@@ -90,102 +92,6 @@ class MainWindow(QMainWindow):
         self.statusWidget.set_operation(
             "Сессия экспорта создана"
         )
-
-    def start_export(
-        self,
-        conversation_name: str,
-        messages: list,
-    ) -> None:
-
-        if self.exportSession is None:
-
-            QMessageBox.warning(
-                self,
-                "VK Archive",
-                "Сначала создайте сессию экспорта.",
-            )
-
-            return
-
-        self.toolbarWidget.set_export_running(True)
-
-        self.exportThread = QThread(self)
-
-        self.exportWorker = ExportWorker(
-            self.exportSession,
-            conversation_name,
-            messages,
-        )
-
-        self.exportWorker.moveToThread(
-            self.exportThread,
-        )
-
-        self.exportThread.started.connect(
-            self.exportWorker.run,
-        )
-
-        self.exportWorker.finished.connect(
-            self._export_finished,
-        )
-
-        self.exportWorker.failed.connect(
-            self._export_failed,
-        )
-
-        self.exportWorker.finished.connect(
-            self.exportThread.quit,
-        )
-
-        self.exportWorker.failed.connect(
-            self.exportThread.quit,
-        )
-
-        self.exportThread.finished.connect(
-            self.exportThread.deleteLater,
-        )
-
-        self.exportThread.start()
-
-    def _export_finished(
-        self,
-        result,
-    ) -> None:
-
-        self.toolbarWidget.set_export_running(False)
-
-        self.statusWidget.set_operation(
-            "Экспорт завершён"
-        )
-
-        QMessageBox.information(
-            self,
-            "VK Archive",
-            f"Экспорт завершён.\n\n{result}",
-        )
-
-        self.exportWorker = None
-        self.exportThread = None
-
-    def _export_failed(
-        self,
-        error: str,
-    ) -> None:
-
-        self.toolbarWidget.set_export_running(False)
-
-        self.statusWidget.set_operation(
-            "Ошибка экспорта"
-        )
-
-        QMessageBox.critical(
-            self,
-            "VK Archive",
-            error,
-        )
-
-        self.exportWorker = None
-        self.exportThread = None
 
     def _update_state(
         self,
@@ -246,28 +152,20 @@ class MainWindow(QMainWindow):
 
         if event == "dialog":
 
-            self.statusWidget.increment_dialogs(
-                value,
-            )
+            self.statusWidget.increment_dialogs(value)
 
         elif event == "message":
 
-            self.statusWidget.increment_messages(
-                value,
-            )
+            self.statusWidget.increment_messages(value)
 
         elif event == "file":
 
-            self.statusWidget.increment_files(
-                value,
-            )
+            self.statusWidget.increment_files(value)
 
     def reset_download_progress(self) -> None:
 
         self.progressWidget.reset()
-
         self.queueWidget.clear_queue()
-
         self.statusWidget.reset()
 
     def closeEvent(
@@ -275,10 +173,9 @@ class MainWindow(QMainWindow):
         event,
     ):
 
-        if self.exportThread is not None:
+        if hasattr(self, "exportController"):
 
-            self.exportThread.quit()
-            self.exportThread.wait()
+            self.exportController.stop()
 
         self.eventBridge.disconnect_manager()
 
