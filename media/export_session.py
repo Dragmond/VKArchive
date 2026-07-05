@@ -6,6 +6,10 @@ from media.exporter import ArchiveExporter
 from vk.messages import Message
 
 
+class ExportCancelledError(Exception):
+    """Raised when the export process is cancelled by the user."""
+
+
 class ExportSession:
 
     def __init__(
@@ -18,6 +22,7 @@ class ExportSession:
         )
 
         self._running = False
+        self._cancel_requested = False
 
     @property
     def exporter(
@@ -33,15 +38,48 @@ class ExportSession:
 
         return self._running
 
+    @property
+    def is_cancelled(
+        self,
+    ) -> bool:
+
+        return self._cancel_requested
+
+    def cancel(
+        self,
+    ) -> None:
+
+        self._cancel_requested = True
+
+    def reset_cancel(
+        self,
+    ) -> None:
+
+        self._cancel_requested = False
+
+    def _check_cancelled(
+        self,
+    ) -> None:
+
+        if self._cancel_requested:
+
+            raise ExportCancelledError(
+                "Экспорт отменён пользователем."
+            )
+
     def run(
         self,
         conversation_name: str,
         messages: list[Message],
     ) -> Path:
 
+        self.reset_cancel()
+
         self._running = True
 
         try:
+
+            self._check_cancelled()
 
             html = self._exporter.export_messages(
                 conversation_name,
@@ -51,6 +89,8 @@ class ExportSession:
             attachments = []
 
             for message in messages:
+
+                self._check_cancelled()
 
                 attachments.extend(
                     getattr(
@@ -62,10 +102,14 @@ class ExportSession:
 
             if attachments:
 
+                self._check_cancelled()
+
                 self._exporter.export_media(
                     conversation_name,
                     attachments,
                 )
+
+            self._check_cancelled()
 
             return html
 
