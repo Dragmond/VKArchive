@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtWidgets import (
     QFileDialog,
     QMainWindow,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
+from gui.export_worker import ExportWorker
 from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
 from media.export_session import ExportSession
@@ -27,6 +28,8 @@ class MainWindow(QMainWindow):
         self.resize(900, 700)
 
         self.exportSession: ExportSession | None = None
+        self.exportThread: QThread | None = None
+        self.exportWorker: ExportWorker | None = None
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -87,6 +90,102 @@ class MainWindow(QMainWindow):
         self.statusWidget.set_operation(
             "Сессия экспорта создана"
         )
+
+    def start_export(
+        self,
+        conversation_name: str,
+        messages: list,
+    ) -> None:
+
+        if self.exportSession is None:
+
+            QMessageBox.warning(
+                self,
+                "VK Archive",
+                "Сначала создайте сессию экспорта.",
+            )
+
+            return
+
+        self.toolbarWidget.loginButton.setEnabled(False)
+
+        self.exportThread = QThread(self)
+
+        self.exportWorker = ExportWorker(
+            self.exportSession,
+            conversation_name,
+            messages,
+        )
+
+        self.exportWorker.moveToThread(
+            self.exportThread,
+        )
+
+        self.exportThread.started.connect(
+            self.exportWorker.run,
+        )
+
+        self.exportWorker.finished.connect(
+            self._export_finished,
+        )
+
+        self.exportWorker.failed.connect(
+            self._export_failed,
+        )
+
+        self.exportWorker.finished.connect(
+            self.exportThread.quit,
+        )
+
+        self.exportWorker.failed.connect(
+            self.exportThread.quit,
+        )
+
+        self.exportThread.finished.connect(
+            self.exportThread.deleteLater,
+        )
+
+        self.exportThread.start()
+
+    def _export_finished(
+        self,
+        result,
+    ) -> None:
+
+        self.toolbarWidget.loginButton.setEnabled(True)
+
+        self.statusWidget.set_operation(
+            "Экспорт завершён"
+        )
+
+        QMessageBox.information(
+            self,
+            "VK Archive",
+            f"Экспорт завершён.\n\n{result}",
+        )
+
+        self.exportWorker = None
+        self.exportThread = None
+
+    def _export_failed(
+        self,
+        error: str,
+    ) -> None:
+
+        self.toolbarWidget.loginButton.setEnabled(True)
+
+        self.statusWidget.set_operation(
+            "Ошибка экспорта"
+        )
+
+        QMessageBox.critical(
+            self,
+            "VK Archive",
+            error,
+        )
+
+        self.exportWorker = None
+        self.exportThread = None
 
     def _update_state(
         self,
@@ -175,6 +274,11 @@ class MainWindow(QMainWindow):
         self,
         event,
     ):
+
+        if self.exportThread is not None:
+
+            self.exportThread.quit()
+            self.exportThread.wait()
 
         self.eventBridge.disconnect_manager()
 
