@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
+from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
 
 
@@ -26,18 +27,16 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(central)
 
         self.toolbarWidget = ToolbarWidget()
-
         layout.addWidget(self.toolbarWidget)
 
         self.progressWidget = DownloadProgressWidget()
-
         layout.addWidget(self.progressWidget)
 
         self.queueWidget = DownloadQueueWidget()
-
         layout.addWidget(self.queueWidget)
 
-        layout.addStretch()
+        self.statusWidget = StatusBarWidget()
+        layout.addWidget(self.statusWidget)
 
         self.eventBridge = DownloadEventBridge(self)
 
@@ -65,11 +64,19 @@ class MainWindow(QMainWindow):
                 media_type,
             )
 
+            self.statusWidget.set_operation(
+                "Файл добавлен в очередь"
+            )
+
         elif state == "started":
 
             self.queueWidget.mark_downloading(
                 filename,
                 media_type,
+            )
+
+            self.statusWidget.set_operation(
+                f"Загрузка: {filename}"
             )
 
         elif state == "completed":
@@ -79,6 +86,10 @@ class MainWindow(QMainWindow):
                 media_type,
             )
 
+            self.statusWidget.set_operation(
+                "Загрузка завершена"
+            )
+
         elif state == "failed":
 
             self.queueWidget.mark_failed(
@@ -86,11 +97,17 @@ class MainWindow(QMainWindow):
                 media_type,
             )
 
+            self.statusWidget.set_operation(
+                f"Ошибка загрузки: {filename}"
+            )
+
     def reset_download_progress(self) -> None:
 
         self.progressWidget.reset()
 
         self.queueWidget.clear_queue()
+
+        self.statusWidget.reset()
 
     def closeEvent(
         self,
