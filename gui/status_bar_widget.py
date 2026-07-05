@@ -17,17 +17,28 @@ class StatusBarWidget(QWidget):
 
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.operationLabel = QLabel("Готов")
+        self._dialogs = 0
+        self._messages = 0
+        self._files = 0
 
+        self.operationLabel = QLabel("Готов")
         layout.addWidget(self.operationLabel)
 
         layout.addStretch()
 
-        self.statisticsLabel = QLabel(
-            "Диалогов: 0 | Сообщений: 0 | Файлов: 0"
-        )
+        self.statisticsLabel = QLabel()
 
         layout.addWidget(self.statisticsLabel)
+
+        self._update_statistics_label()
+
+    def _update_statistics_label(self) -> None:
+
+        self.statisticsLabel.setText(
+            f"Диалогов: {self._dialogs} | "
+            f"Сообщений: {self._messages} | "
+            f"Файлов: {self._files}"
+        )
 
     def set_operation(
         self,
@@ -43,18 +54,45 @@ class StatusBarWidget(QWidget):
         files: int,
     ) -> None:
 
-        self.statisticsLabel.setText(
-            f"Диалогов: {dialogs} | "
-            f"Сообщений: {messages} | "
-            f"Файлов: {files}"
-        )
+        self._dialogs = dialogs
+        self._messages = messages
+        self._files = files
+
+        self._update_statistics_label()
+
+    def increment_dialogs(
+        self,
+        count: int = 1,
+    ) -> None:
+
+        self._dialogs += count
+
+        self._update_statistics_label()
+
+    def increment_messages(
+        self,
+        count: int = 1,
+    ) -> None:
+
+        self._messages += count
+
+        self._update_statistics_label()
+
+    def increment_files(
+        self,
+        count: int = 1,
+    ) -> None:
+
+        self._files += count
+
+        self._update_statistics_label()
 
     def reset(self) -> None:
 
+        self._dialogs = 0
+        self._messages = 0
+        self._files = 0
+
         self.set_operation("Готов")
 
-        self.set_statistics(
-            0,
-            0,
-            0,
-        )
+        self._update_statistics_label()
