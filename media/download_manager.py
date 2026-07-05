@@ -17,6 +17,20 @@ ProgressCallback = Callable[[int, int, MediaFile], None]
 StateCallback = Callable[[str, MediaFile], None]
 
 
+class DownloadBatchError(Exception):
+
+    def __init__(
+        self,
+        failures: list[tuple[MediaFile, Exception]],
+    ) -> None:
+
+        self.failures = failures
+
+        super().__init__(
+            f"Failed to download {len(failures)} file(s)"
+        )
+
+
 class DownloadManager:
 
     MAX_RETRIES = 3
@@ -278,6 +292,8 @@ class DownloadManager:
 
         result: list[Path] = []
 
+        failures: list[tuple[MediaFile, Exception]] = []
+
         workers = max(
             1,
             config.settings.threads,
@@ -316,9 +332,25 @@ class DownloadManager:
                     future
                 ]
 
-                result.append(
-                    future.result()
-                )
+                try:
+
+                    result.append(
+                        future.result()
+                    )
+
+                except Exception as error:
+
+                    failures.append(
+                        (
+                            media,
+                            error,
+                        )
+                    )
+
+                    self._notify_state(
+                        "failed",
+                        media,
+                    )
 
                 completed += 1
 
@@ -327,6 +359,9 @@ class DownloadManager:
                     total,
                     media,
                 )
+
+        if failures:
+            raise DownloadBatchError(failures)
 
         return result
 
