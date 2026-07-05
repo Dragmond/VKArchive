@@ -10,6 +10,7 @@ class ExportController(QObject):
 
     finished = Signal(object)
     failed = Signal(str)
+    cancelled = Signal()
 
     def __init__(self, parent=None):
 
@@ -17,6 +18,7 @@ class ExportController(QObject):
 
         self._thread: QThread | None = None
         self._worker: ExportWorker | None = None
+        self._session: ExportSession | None = None
 
     @property
     def is_running(self) -> bool:
@@ -32,6 +34,8 @@ class ExportController(QObject):
 
         if self.is_running:
             return
+
+        self._session = session
 
         self._thread = QThread(self)
 
@@ -71,10 +75,16 @@ class ExportController(QObject):
 
     def cancel(self) -> None:
 
-        if self._worker is None:
+        if not self.is_running:
             return
 
-        self._worker._session.cancel()
+        if self._session is not None:
+
+            self._session.cancel()
+
+        self.stop()
+
+        self.cancelled.emit()
 
     def stop(self) -> None:
 
@@ -87,12 +97,11 @@ class ExportController(QObject):
     def _cleanup(self) -> None:
 
         if self._worker is not None:
-
             self._worker.deleteLater()
 
         if self._thread is not None:
-
             self._thread.deleteLater()
 
         self._worker = None
         self._thread = None
+        self._session = None
