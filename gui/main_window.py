@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
+from gui.settings_widget import SettingsWidget
 from gui.toolbar_widget import ToolbarWidget
 
 
@@ -28,6 +29,10 @@ class MainWindow(QMainWindow):
         self.toolbarWidget = ToolbarWidget()
 
         layout.addWidget(self.toolbarWidget)
+
+        self.settingsWidget = SettingsWidget()
+
+        layout.addWidget(self.settingsWidget)
 
         self.progressWidget = DownloadProgressWidget()
 
