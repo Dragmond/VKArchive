@@ -13,6 +13,9 @@ class DownloadEventBridge(QObject):
     progressChanged = Signal(int, int, str)
     stateChanged = Signal(str, str, str)
 
+    # event, value
+    exportEventChanged = Signal(str, int)
+
     def __init__(self, parent=None):
 
         super().__init__(parent)
@@ -33,6 +36,22 @@ class DownloadEventBridge(QObject):
         return media.filename or Path(
             media.url
         ).name
+
+    def connect_exporter(
+        self,
+        exporter,
+    ) -> None:
+
+        exporter.set_event_callback(
+            self._export_callback
+        )
+
+    def disconnect_exporter(
+        self,
+        exporter,
+    ) -> None:
+
+        exporter.set_event_callback(None)
 
     def _progress_callback(
         self,
@@ -57,6 +76,17 @@ class DownloadEventBridge(QObject):
             state,
             self._filename(media),
             media.type,
+        )
+
+    def _export_callback(
+        self,
+        event: str,
+        value: int,
+    ) -> None:
+
+        self.exportEventChanged.emit(
+            event,
+            value,
         )
 
     def disconnect_manager(self) -> None:
