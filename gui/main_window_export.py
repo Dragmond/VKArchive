@@ -19,6 +19,14 @@ class MainWindowExportMixin:
             self._export_failed,
         )
 
+        self.exportController.cancelled.connect(
+            self._export_cancelled,
+        )
+
+        self.toolbarWidget.cancelButton.clicked.connect(
+            self._cancel_export,
+        )
+
     def start_export(
         self,
         conversation_name: str,
@@ -37,11 +45,22 @@ class MainWindowExportMixin:
 
         self.toolbarWidget.set_export_running(True)
 
+        self.statusWidget.set_operation(
+            "Экспорт..."
+        )
+
         self.exportController.start(
             self.exportSession,
             conversation_name,
             messages,
         )
+
+    def _cancel_export(self) -> None:
+
+        if not self.exportController.is_running:
+            return
+
+        self.exportController.cancel()
 
     def _export_finished(
         self,
@@ -75,4 +94,18 @@ class MainWindowExportMixin:
             self,
             "VK Archive",
             error,
+        )
+
+    def _export_cancelled(self) -> None:
+
+        self.toolbarWidget.set_export_running(False)
+
+        self.statusWidget.set_operation(
+            "Экспорт отменён"
+        )
+
+        QMessageBox.information(
+            self,
+            "VK Archive",
+            "Экспорт был отменён пользователем.",
         )
