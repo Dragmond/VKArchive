@@ -11,10 +11,7 @@ class ExportController(QObject):
     finished = Signal(object)
     failed = Signal(str)
 
-    def __init__(
-        self,
-        parent=None,
-    ) -> None:
+    def __init__(self, parent=None):
 
         super().__init__(parent)
 
@@ -36,7 +33,7 @@ class ExportController(QObject):
         if self.is_running:
             return
 
-        self._thread = QThread()
+        self._thread = QThread(self)
 
         self._worker = ExportWorker(
             session,
@@ -44,28 +41,26 @@ class ExportController(QObject):
             messages,
         )
 
-        self._worker.moveToThread(
-            self._thread,
-        )
+        self._worker.moveToThread(self._thread)
 
         self._thread.started.connect(
             self._worker.run,
         )
 
         self._worker.finished.connect(
-            self.finished,
+            self.finished.emit,
         )
 
         self._worker.failed.connect(
-            self.failed,
+            self.failed.emit,
         )
 
         self._worker.finished.connect(
-            self._thread.quit,
+            self.stop,
         )
 
         self._worker.failed.connect(
-            self._thread.quit,
+            self.stop,
         )
 
         self._thread.finished.connect(
@@ -73,6 +68,13 @@ class ExportController(QObject):
         )
 
         self._thread.start()
+
+    def cancel(self) -> None:
+
+        if self._worker is None:
+            return
+
+        self._worker._session.cancel()
 
     def stop(self) -> None:
 
@@ -84,13 +86,13 @@ class ExportController(QObject):
 
     def _cleanup(self) -> None:
 
-        if self._thread is not None:
-
-            self._thread.deleteLater()
-
         if self._worker is not None:
 
             self._worker.deleteLater()
 
-        self._thread = None
+        if self._thread is not None:
+
+            self._thread.deleteLater()
+
         self._worker = None
+        self._thread = None
