@@ -32,3 +32,24 @@ class ToolbarWidget(QWidget):
         self.loginButton = QPushButton("Войти в VK")
 
         layout.addWidget(self.loginButton)
+
+        self.cancelButton = QPushButton(
+            "Отменить экспорт"
+        )
+
+        self.cancelButton.setEnabled(False)
+
+        layout.addWidget(self.cancelButton)
+
+    def set_export_running(
+        self,
+        running: bool,
+    ) -> None:
+
+        self.loginButton.setEnabled(
+            not running
+        )
+
+        self.cancelButton.setEnabled(
+            running
+        )
