@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gui.dialog_panel import DialogPanel
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
@@ -39,6 +40,9 @@ class MainWindow(
         self.toolbarWidget = ToolbarWidget()
         layout.addWidget(self.toolbarWidget)
 
+        self.dialogPanel = DialogPanel()
+        layout.addWidget(self.dialogPanel)
+
         self.progressWidget = DownloadProgressWidget()
         layout.addWidget(self.progressWidget)
 
@@ -69,6 +73,10 @@ class MainWindow(
             self._create_export_session,
         )
 
+        self.dialogPanel.exportRequested.connect(
+            self._export_selected_dialog,
+        )
+
         self._setup_export_controller()
 
     def _create_export_session(self) -> None:
@@ -92,6 +100,25 @@ class MainWindow(
         self.statusWidget.set_operation(
             "Сессия экспорта создана"
         )
+
+    def _export_selected_dialog(self) -> None:
+
+        dialog = self.dialogPanel.selected_dialog()
+
+        if dialog is None:
+
+            self.statusWidget.set_operation(
+                "Диалог не выбран"
+            )
+
+            return
+
+        self.statusWidget.set_operation(
+            f"Экспорт: {dialog.title}"
+        )
+
+        # Здесь в следующем коммите будет вызов
+        # DialogController + HistoryService.
 
     def _update_state(
         self,
