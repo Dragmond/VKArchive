@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
 
 from gui.dialog_controller import DialogController
@@ -14,6 +13,7 @@ from gui.dialog_panel import DialogPanel
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
 from gui.download_queue import DownloadQueueWidget
+from gui.main_window_dialogs import MainWindowDialogsMixin
 from gui.main_window_export import MainWindowExportMixin
 from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
@@ -27,6 +27,7 @@ from vk.dialogs import DialogService
 class MainWindow(
     QMainWindow,
     MainWindowExportMixin,
+    MainWindowDialogsMixin,
 ):
 
     def __init__(self):
@@ -120,39 +121,6 @@ class MainWindow(
 
         self._setup_export_controller()
 
-    def _load_dialogs(self) -> None:
-
-        if self.dialogController is None:
-
-            QMessageBox.warning(
-                self,
-                "VK Archive",
-                "Сначала выполните вход.",
-            )
-
-            return
-
-        self.statusWidget.set_operation(
-            "Загрузка диалогов..."
-        )
-
-        self.dialogController.load()
-
-    def _dialog_load_failed(
-        self,
-        error: str,
-    ) -> None:
-
-        QMessageBox.critical(
-            self,
-            "VK Archive",
-            error,
-        )
-
-        self.statusWidget.set_operation(
-            "Ошибка загрузки"
-        )
-
     def _create_export_session(self) -> None:
 
         directory = QFileDialog.getExistingDirectory(
@@ -173,22 +141,6 @@ class MainWindow(
 
         self.statusWidget.set_operation(
             "Сессия экспорта создана"
-        )
-
-    def _export_selected_dialog(self) -> None:
-
-        dialog = self.dialogPanel.selected_dialog()
-
-        if dialog is None:
-
-            self.statusWidget.set_operation(
-                "Диалог не выбран"
-            )
-
-            return
-
-        self.statusWidget.set_operation(
-            f"Экспорт: {dialog.title}"
         )
 
     def _update_state(
