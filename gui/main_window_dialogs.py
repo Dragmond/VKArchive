@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QMessageBox
 
+from vk.api import VKApi
+from vk.auth import VKAuthService
+from vk.history import HistoryService
+from vk.history_loader import HistoryLoader
+
 
 class MainWindowDialogsMixin:
 
@@ -52,10 +57,47 @@ class MainWindowDialogsMixin:
 
             return
 
+        if self.exportSession is None:
+
+            QMessageBox.warning(
+                self,
+                "VK Archive",
+                "Сначала создайте сессию экспорта.",
+            )
+
+            return
+
+        session = VKAuthService(
+            self.authService._config_path,
+        ).load_session()
+
+        if session is None:
+
+            QMessageBox.warning(
+                self,
+                "VK Archive",
+                "Не выполнен вход.",
+            )
+
+            return
+
         self.statusWidget.set_operation(
-            f"Экспорт: {dialog.title}"
+            f"Загрузка сообщений: {dialog.title}"
         )
 
-        # На следующем коммите здесь появится:
-        # HistoryController
-        # ExportController.start(...)
+        api = VKApi(
+            session.access_token,
+        )
+
+        loader = HistoryLoader(
+            HistoryService(api),
+        )
+
+        messages = loader.load(
+            dialog.peer_id,
+        )
+
+        self.start_export(
+            dialog.title,
+            messages,
+        )
