@@ -6,8 +6,10 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
     QWidget,
+    QMessageBox,
 )
 
+from gui.dialog_controller import DialogController
 from gui.dialog_panel import DialogPanel
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
@@ -16,6 +18,10 @@ from gui.main_window_export import MainWindowExportMixin
 from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
 from media.export_session import ExportSession
+from vk.api import VKApi
+from vk.auth import VKAuthService
+from vk.dialog_loader import DialogLoader
+from vk.dialogs import DialogService
 
 
 class MainWindow(
@@ -31,6 +37,27 @@ class MainWindow(
         self.resize(900, 700)
 
         self.exportSession: ExportSession | None = None
+
+        self.authService = VKAuthService(
+            Path("config.json"),
+        )
+
+        self.dialogController: DialogController | None = None
+
+        session = self.authService.load_session()
+
+        if session is not None:
+
+            api = VKApi(session.access_token)
+
+            loader = DialogLoader(
+                DialogService(api),
+            )
+
+            self.dialogController = DialogController(
+                loader,
+                self,
+            )
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -77,7 +104,54 @@ class MainWindow(
             self._export_selected_dialog,
         )
 
+        self.dialogPanel.refreshRequested.connect(
+            self._load_dialogs,
+        )
+
+        if self.dialogController is not None:
+
+            self.dialogController.dialogsLoaded.connect(
+                self.dialogPanel.set_dialogs,
+            )
+
+            self.dialogController.loadFailed.connect(
+                self._dialog_load_failed,
+            )
+
         self._setup_export_controller()
+
+    def _load_dialogs(self) -> None:
+
+        if self.dialogController is None:
+
+            QMessageBox.warning(
+                self,
+                "VK Archive",
+                "Сначала выполните вход.",
+            )
+
+            return
+
+        self.statusWidget.set_operation(
+            "Загрузка диалогов..."
+        )
+
+        self.dialogController.load()
+
+    def _dialog_load_failed(
+        self,
+        error: str,
+    ) -> None:
+
+        QMessageBox.critical(
+            self,
+            "VK Archive",
+            error,
+        )
+
+        self.statusWidget.set_operation(
+            "Ошибка загрузки"
+        )
 
     def _create_export_session(self) -> None:
 
@@ -116,9 +190,6 @@ class MainWindow(
         self.statusWidget.set_operation(
             f"Экспорт: {dialog.title}"
         )
-
-        # Здесь в следующем коммите будет вызов
-        # DialogController + HistoryService.
 
     def _update_state(
         self,
