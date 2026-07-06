@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QMessageBox
 
-from vk.api import VKApi
-from vk.auth import VKAuthService
-from vk.history import HistoryService
-from vk.history_loader import HistoryLoader
+from gui.history_bootstrap import create_history_loader
 
 
 class MainWindowDialogsMixin:
@@ -67,11 +64,9 @@ class MainWindowDialogsMixin:
 
             return
 
-        session = VKAuthService(
-            self.authService._config_path,
-        ).load_session()
+        loader = create_history_loader()
 
-        if session is None:
+        if loader is None:
 
             QMessageBox.warning(
                 self,
@@ -83,14 +78,6 @@ class MainWindowDialogsMixin:
 
         self.statusWidget.set_operation(
             f"Загрузка сообщений: {dialog.title}"
-        )
-
-        api = VKApi(
-            session.access_token,
-        )
-
-        loader = HistoryLoader(
-            HistoryService(api),
         )
 
         messages = loader.load(
