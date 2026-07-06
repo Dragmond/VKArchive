@@ -16,6 +16,7 @@ class DialogPanel(QWidget):
 
     dialogSelected = Signal(DialogInfo)
     exportRequested = Signal()
+    refreshRequested = Signal()
 
     def __init__(self, parent=None):
 
@@ -49,6 +50,10 @@ class DialogPanel(QWidget):
             self._dialog_selected,
         )
 
+        self.refreshButton.clicked.connect(
+            self.refreshRequested.emit,
+        )
+
         self.exportButton.clicked.connect(
             self.exportRequested.emit,
         )
@@ -62,11 +67,15 @@ class DialogPanel(QWidget):
 
         self.exportButton.setEnabled(False)
 
-    def selected_dialog(self) -> DialogInfo | None:
+    def selected_dialog(
+        self,
+    ) -> DialogInfo | None:
 
         return self.dialogList.selected_dialog()
 
-    def clear(self) -> None:
+    def clear(
+        self,
+    ) -> None:
 
         self.dialogList.clear_dialogs()
 
