@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gui.dialog_controller import DialogController
+from gui.dialog_bootstrap import create_dialog_controller
 from gui.dialog_panel import DialogPanel
 from gui.download_event_bridge import DownloadEventBridge
 from gui.download_progress import DownloadProgressWidget
@@ -18,10 +18,6 @@ from gui.main_window_export import MainWindowExportMixin
 from gui.status_bar_widget import StatusBarWidget
 from gui.toolbar_widget import ToolbarWidget
 from media.export_session import ExportSession
-from vk.api import VKApi
-from vk.auth import VKAuthService
-from vk.dialog_loader import DialogLoader
-from vk.dialogs import DialogService
 
 
 class MainWindow(
@@ -39,26 +35,9 @@ class MainWindow(
 
         self.exportSession: ExportSession | None = None
 
-        self.authService = VKAuthService(
-            Path("config.json"),
+        self.dialogController = create_dialog_controller(
+            self,
         )
-
-        self.dialogController: DialogController | None = None
-
-        session = self.authService.load_session()
-
-        if session is not None:
-
-            api = VKApi(session.access_token)
-
-            loader = DialogLoader(
-                DialogService(api),
-            )
-
-            self.dialogController = DialogController(
-                loader,
-                self,
-            )
 
         central = QWidget()
         self.setCentralWidget(central)
