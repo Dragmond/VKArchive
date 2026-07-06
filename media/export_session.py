@@ -67,6 +67,34 @@ class ExportSession:
                 "Экспорт отменён пользователем."
             )
 
+    def _collect_unique_attachments(
+        self,
+        messages: list[Message],
+    ) -> list:
+
+        unique: list = []
+        seen: set[str] = set()
+
+        for message in messages:
+
+            self._check_cancelled()
+
+            for attachment in getattr(
+                message,
+                "attachments",
+                [],
+            ):
+
+                key = repr(attachment)
+
+                if key in seen:
+                    continue
+
+                seen.add(key)
+                unique.append(attachment)
+
+        return unique
+
     def run(
         self,
         conversation_name: str,
@@ -86,19 +114,9 @@ class ExportSession:
                 messages,
             )
 
-            attachments = []
-
-            for message in messages:
-
-                self._check_cancelled()
-
-                attachments.extend(
-                    getattr(
-                        message,
-                        "attachments",
-                        [],
-                    )
-                )
+            attachments = self._collect_unique_attachments(
+                messages,
+            )
 
             if attachments:
 
