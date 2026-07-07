@@ -12,6 +12,7 @@ class MediaMapper:
     ) -> list[MediaFile]:
 
         result: list[MediaFile] = []
+        seen: set[str] = set()
 
         for attachment in attachments:
 
@@ -19,6 +20,11 @@ class MediaMapper:
 
             if not url:
                 continue
+
+            if url in seen:
+                continue
+
+            seen.add(url)
 
             result.append(
                 MediaFile(
