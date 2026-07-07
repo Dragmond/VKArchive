@@ -33,6 +33,8 @@ class HtmlRenderer:
             ".attachment{background:#303134;padding:6px 10px;border-radius:6px;}",
             ".forwarded{margin-top:12px;margin-left:20px;padding-left:12px;border-left:3px solid #5f6368;}",
             ".forwarded-title{color:#9aa0a6;font-size:12px;margin-bottom:8px;}",
+            ".reply{margin-top:10px;margin-bottom:10px;padding:8px 12px;border-left:3px solid #8ab4f8;background:#2d3136;border-radius:6px;}",
+            ".reply-title{color:#8ab4f8;font-size:12px;margin-bottom:6px;}",
             "a{color:#8ab4f8;text-decoration:none;}",
             "</style>",
             "</head>",
