@@ -29,6 +29,7 @@ class HtmlRenderer:
             ".text{white-space:pre-wrap;word-break:break-word;}",
             ".attachments{margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;}",
             ".attachments img{max-width:260px;border-radius:8px;}",
+            ".sticker{max-width:192px;max-height:192px;}",
             ".attachment{background:#303134;padding:6px 10px;border-radius:6px;}",
             "a{color:#8ab4f8;text-decoration:none;}",
             "</style>",
