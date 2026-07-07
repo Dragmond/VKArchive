@@ -4,6 +4,7 @@ from datetime import datetime
 from html import escape
 
 from media.attachment_renderer import AttachmentRenderer
+from media.date_formatter import DateFormatter
 from vk.messages import Message
 
 
@@ -29,6 +30,7 @@ class HtmlRenderer:
             "<style>",
             "body{font-family:Segoe UI,Arial,sans-serif;background:#202124;color:#eee;margin:0;padding:24px;}",
             "h1{margin-top:0;}",
+            ".day-divider{margin:28px 0 18px;padding:8px 14px;background:#303134;border-radius:8px;text-align:center;font-weight:bold;color:#ddd;}",
             ".message{padding:12px;border-bottom:1px solid #444;}",
             ".meta{color:#9aa0a6;font-size:12px;margin-bottom:6px;}",
             ".text{white-space:pre-wrap;word-break:break-word;}",
@@ -47,7 +49,26 @@ class HtmlRenderer:
             f"<h1>{escape(conversation_name)}</h1>",
         ]
 
+        current_day: str | None = None
+
         for message in messages:
+
+            day = DateFormatter.key(
+                message.date,
+            )
+
+            if day != current_day:
+
+                current_day = day
+
+                html.append(
+                    (
+                        "<div class='day-divider'>"
+                        f"{DateFormatter.title(message.date)}"
+                        "</div>"
+                    )
+                )
+
             html.append(
                 self._render_message(
                     message,
@@ -70,7 +91,7 @@ class HtmlRenderer:
 
         timestamp = datetime.fromtimestamp(
             message.date,
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        ).strftime("%H:%M:%S")
 
         direction = (
             "Исходящее"
