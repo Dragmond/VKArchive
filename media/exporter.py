@@ -8,6 +8,7 @@ from media.download_manager import download_manager
 from media.html_renderer import HtmlRenderer
 from media.media_mapper import media_mapper
 from vk.messages import Message
+from vk.users import users
 
 
 ExportEventCallback = Callable[[str, int], None]
@@ -68,16 +69,22 @@ class ArchiveExporter:
 
         media: list[MediaFile] = []
 
+        user_ids = {
+            message.from_id
+            for message in messages
+            if message.from_id > 0
+        }
+
+        user_map = users.get(
+            list(user_ids),
+        )
+
         for message in messages:
 
             self._emit("message")
 
             mapped = media_mapper.map(
-                getattr(
-                    message,
-                    "attachments",
-                    [],
-                )
+                message.attachments,
             )
 
             media.extend(mapped)
@@ -91,6 +98,7 @@ class ArchiveExporter:
             self._renderer.render(
                 conversation_name,
                 messages,
+                user_map,
             ),
             encoding="utf-8",
         )
