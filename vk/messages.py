@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from database.database import db
 from vk.client import client
@@ -23,8 +23,65 @@ class Message:
 
     attachments: list[dict]
 
+    reply_message: "Message | None" = None
+
+    fwd_messages: list["Message"] = field(
+        default_factory=list,
+    )
+
 
 class MessagesService:
+
+    def _parse_message(
+        self,
+        item: dict,
+        peer_id: int,
+    ) -> Message:
+
+        reply = item.get(
+            "reply_message",
+        )
+
+        forwarded = item.get(
+            "fwd_messages",
+            [],
+        )
+
+        return Message(
+            id=item["id"],
+            date=item["date"],
+            peer_id=peer_id,
+            from_id=item["from_id"],
+            text=item.get(
+                "text",
+                "",
+            ),
+            out=bool(
+                item.get(
+                    "out",
+                    0,
+                )
+            ),
+            attachments=item.get(
+                "attachments",
+                [],
+            ),
+            reply_message=(
+                self._parse_message(
+                    reply,
+                    peer_id,
+                )
+                if reply
+                else None
+            ),
+            fwd_messages=[
+                self._parse_message(
+                    message,
+                    peer_id,
+                )
+                for message in forwarded
+            ],
+        )
 
     def get_page(
         self,
@@ -41,23 +98,13 @@ class MessagesService:
             count=count,
         )
 
-        messages: list[Message] = []
-
-        for item in response["items"]:
-
-            messages.append(
-                Message(
-                    id=item["id"],
-                    date=item["date"],
-                    peer_id=peer_id,
-                    from_id=item["from_id"],
-                    text=item.get("text", ""),
-                    out=bool(item.get("out", 0)),
-                    attachments=item.get("attachments", []),
-                )
+        return [
+            self._parse_message(
+                item,
+                peer_id,
             )
-
-        return messages
+            for item in response["items"]
+        ]
 
     def get_all(
         self,
@@ -98,11 +145,17 @@ class MessagesService:
         Загружает историю и сохраняет только новые сообщения.
         """
 
-        last_message_id = db.get_last_message_id(peer_id)
+        last_message_id = db.get_last_message_id(
+            peer_id,
+        )
 
         new_messages: list[Message] = []
 
-        for message in reversed(self.get_all(peer_id)):
+        for message in reversed(
+            self.get_all(
+                peer_id,
+            )
+        ):
 
             if (
                 last_message_id is not None
@@ -119,7 +172,9 @@ class MessagesService:
                 outgoing=message.out,
             )
 
-            new_messages.append(message)
+            new_messages.append(
+                message,
+            )
 
         return new_messages
 
