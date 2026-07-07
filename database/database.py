@@ -62,6 +62,18 @@ class Database:
 
         self.connection.commit()
 
+    def begin(self) -> None:
+
+        self.connection.execute("BEGIN")
+
+    def commit(self) -> None:
+
+        self.connection.commit()
+
+    def rollback(self) -> None:
+
+        self.connection.rollback()
+
     def set_setting(self, key: str, value: str) -> None:
 
         self.cursor.execute(
@@ -156,6 +168,8 @@ class Database:
 
         self.save_messages(batch)
 
+        self.commit()
+
     def save_messages(
         self,
         batch: MessageBatch,
@@ -185,8 +199,6 @@ class Database:
             """,
             batch.rows,
         )
-
-        self.connection.commit()
 
     def get_last_message_id(
         self,
