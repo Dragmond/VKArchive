@@ -12,21 +12,11 @@ class AttachmentParser:
 
         for attachment in attachments:
 
-            if not isinstance(
-                attachment,
-                dict,
-            ):
+            if not isinstance(attachment, dict):
                 continue
 
-            attachment_type = attachment.get(
-                "type",
-                "",
-            )
-
-            data = attachment.get(
-                attachment_type,
-                {},
-            )
+            attachment_type = attachment.get("type", "")
+            data = attachment.get(attachment_type, {})
 
             item = {
                 "type": attachment_type,
@@ -35,14 +25,25 @@ class AttachmentParser:
                 "owner_id": data.get("owner_id"),
                 "title": data.get("title"),
                 "url": data.get("url"),
+                "vk_url": None,
             }
+
+            owner = data.get("owner_id")
+            item_id = data.get("id")
+
+            if (
+                owner is not None
+                and item_id is not None
+            ):
+
+                item["vk_url"] = (
+                    f"https://vk.com/{attachment_type}"
+                    f"{owner}_{item_id}"
+                )
 
             if attachment_type == "photo":
 
-                sizes = data.get(
-                    "sizes",
-                    [],
-                )
+                sizes = data.get("sizes", [])
 
                 if sizes:
 
@@ -60,29 +61,11 @@ class AttachmentParser:
                     )
 
                     item["width"] = largest.get("width")
-
                     item["height"] = largest.get("height")
-
-            elif attachment_type == "doc":
-
-                item["ext"] = data.get("ext")
-
-                item["size"] = data.get("size")
-
-            elif attachment_type == "audio":
-
-                item["artist"] = data.get("artist")
-
-                item["duration"] = data.get("duration")
 
             elif attachment_type == "video":
 
-                item["duration"] = data.get("duration")
-
-                images = data.get(
-                    "image",
-                    [],
-                )
+                images = data.get("image", [])
 
                 if images:
 
@@ -95,6 +78,18 @@ class AttachmentParser:
                     )
 
                     item["preview"] = preview.get("url")
+
+                item["duration"] = data.get("duration")
+
+            elif attachment_type == "audio":
+
+                item["artist"] = data.get("artist")
+                item["duration"] = data.get("duration")
+
+            elif attachment_type == "doc":
+
+                item["ext"] = data.get("ext")
+                item["size"] = data.get("size")
 
             result.append(item)
 
