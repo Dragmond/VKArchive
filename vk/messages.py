@@ -50,10 +50,7 @@ class MessagesService:
             text=item.get("text", ""),
             out=bool(item.get("out", 0)),
             attachments=attachment_parser.parse(
-                item.get(
-                    "attachments",
-                    [],
-                )
+                item.get("attachments", [])
             ),
             action=item.get("action"),
             reply_message=(
@@ -62,10 +59,7 @@ class MessagesService:
                 else None
             ),
             fwd_messages=[
-                self._parse_message(
-                    message,
-                    peer_id,
-                )
+                self._parse_message(message, peer_id)
                 for message in item.get(
                     "fwd_messages",
                     [],
@@ -109,51 +103,62 @@ class MessagesService:
 
         stop = False
 
-        while not stop:
+        db.begin()
 
-            page = self.get_page(
-                peer_id,
-                offset=offset,
-                count=page_size,
-            )
+        try:
 
-            if not page:
-                break
+            while not stop:
 
-            for message in reversed(page):
-
-                if (
-                    last_message_id is not None
-                    and message.id <= last_message_id
-                ):
-                    stop = True
-                    break
-
-                batch.add(
-                    message_id=message.id,
-                    peer_id=message.peer_id,
-                    sender_id=message.from_id,
-                    date=message.date,
-                    text=message.text,
-                    outgoing=message.out,
+                page = self.get_page(
+                    peer_id,
+                    offset=offset,
+                    count=page_size,
                 )
 
-                new_messages.append(message)
+                if not page:
+                    break
 
-                if batch.size >= BATCH_SIZE:
+                for message in reversed(page):
 
-                    db.save_messages(batch)
+                    if (
+                        last_message_id is not None
+                        and message.id <= last_message_id
+                    ):
+                        stop = True
+                        break
 
-                    batch.clear()
+                    batch.add(
+                        message_id=message.id,
+                        peer_id=message.peer_id,
+                        sender_id=message.from_id,
+                        date=message.date,
+                        text=message.text,
+                        outgoing=message.out,
+                    )
 
-            if len(page) < page_size:
-                break
+                    new_messages.append(message)
 
-            offset += page_size
+                    if batch.size >= BATCH_SIZE:
 
-        if not batch.empty:
+                        db.save_messages(batch)
 
-            db.save_messages(batch)
+                        batch.clear()
+
+                if len(page) < page_size:
+                    break
+
+                offset += page_size
+
+            if not batch.empty:
+
+                db.save_messages(batch)
+
+            db.commit()
+
+        except Exception:
+
+            db.rollback()
+            raise
 
         new_messages.reverse()
 
