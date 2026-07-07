@@ -8,6 +8,9 @@ from vk.attachment_parser import attachment_parser
 from vk.client import client
 
 
+BATCH_SIZE = 1000
+
+
 @dataclass(slots=True)
 class Message:
 
@@ -86,10 +89,7 @@ class MessagesService:
         )
 
         return [
-            self._parse_message(
-                item,
-                peer_id,
-            )
+            self._parse_message(item, peer_id)
             for item in response["items"]
         ]
 
@@ -98,14 +98,14 @@ class MessagesService:
         peer_id: int,
     ) -> list[Message]:
 
-        last_message_id = db.get_last_message_id(
-            peer_id,
-        )
+        last_message_id = db.get_last_message_id(peer_id)
 
         page_size = 200
         offset = 0
 
         new_messages: list[Message] = []
+
+        batch = MessageBatch()
 
         stop = False
 
@@ -119,10 +119,6 @@ class MessagesService:
 
             if not page:
                 break
-
-            batch = MessageBatch()
-
-            page_new: list[Message] = []
 
             for message in reversed(page):
 
@@ -142,19 +138,22 @@ class MessagesService:
                     outgoing=message.out,
                 )
 
-                page_new.append(message)
+                new_messages.append(message)
 
-            db.save_messages(batch)
+                if batch.size >= BATCH_SIZE:
 
-            new_messages.extend(page_new)
+                    db.save_messages(batch)
 
-            if stop:
-                break
+                    batch.clear()
 
             if len(page) < page_size:
                 break
 
             offset += page_size
+
+        if not batch.empty:
+
+            db.save_messages(batch)
 
         new_messages.reverse()
 
