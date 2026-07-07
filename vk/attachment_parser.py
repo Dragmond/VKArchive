@@ -18,16 +18,24 @@ class AttachmentParser:
             ):
                 continue
 
+            attachment_type = attachment.get(
+                "type",
+                "",
+            )
+
+            data = attachment.get(
+                attachment_type,
+                {},
+            )
+
             result.append(
                 {
-                    "type": attachment.get("type"),
-                    "data": attachment.get(
-                        attachment.get(
-                            "type",
-                            "",
-                        ),
-                        {},
-                    ),
+                    "type": attachment_type,
+                    "data": data,
+                    "id": data.get("id"),
+                    "owner_id": data.get("owner_id"),
+                    "title": data.get("title"),
+                    "url": data.get("url"),
                 }
             )
 
