@@ -6,6 +6,7 @@ from pathlib import Path
 from media import MediaFile
 from media.download_manager import download_manager
 from media.html_renderer import HtmlRenderer
+from media.media_mapper import media_mapper
 from vk.messages import Message
 
 
@@ -17,9 +18,7 @@ class ArchiveExporter:
     def __init__(self, root: Path) -> None:
 
         self._root = root
-
         self._renderer = HtmlRenderer()
-
         self._event_callback: ExportEventCallback | None = None
 
     def set_event_callback(
@@ -36,11 +35,7 @@ class ArchiveExporter:
     ) -> None:
 
         if self._event_callback is not None:
-
-            self._event_callback(
-                event,
-                value,
-            )
+            self._event_callback(event, value)
 
     @staticmethod
     def _safe_name(
@@ -50,11 +45,7 @@ class ArchiveExporter:
         invalid = '<>:"/\\|?*'
 
         for char in invalid:
-
-            name = name.replace(
-                char,
-                "_",
-            )
+            name = name.replace(char, "_")
 
         return name.strip() or "Conversation"
 
@@ -75,31 +66,41 @@ class ArchiveExporter:
 
         self._emit("dialog")
 
-        for _ in messages:
-
-            self._emit("message")
+        media: list[MediaFile] = []
 
         for message in messages:
 
-            for _ in getattr(
-                message,
-                "attachments",
-                [],
-            ):
+            self._emit("message")
 
+            mapped = media_mapper.map(
+                getattr(
+                    message,
+                    "attachments",
+                    [],
+                )
+            )
+
+            media.extend(mapped)
+
+            for _ in mapped:
                 self._emit("file")
 
         output = folder / "messages.html"
 
-        html = self._renderer.render(
-            conversation_name,
-            messages,
-        )
-
         output.write_text(
-            html,
+            self._renderer.render(
+                conversation_name,
+                messages,
+            ),
             encoding="utf-8",
         )
+
+        if media:
+
+            self.export_media(
+                conversation_name,
+                media,
+            )
 
         return output
 
@@ -111,9 +112,7 @@ class ArchiveExporter:
 
         folder = (
             self._root
-            / self._safe_name(
-                conversation_name,
-            )
+            / self._safe_name(conversation_name)
             / "media"
         )
 
