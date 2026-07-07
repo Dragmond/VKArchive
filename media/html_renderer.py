@@ -17,12 +17,12 @@ class HtmlRenderer:
         self._attachment_renderer = AttachmentRenderer()
         self._system_renderer = SystemMessageRenderer()
 
-def render(
-    self,
-    conversation_name: str,
-    messages: list[Message],
-    users: dict[int, User],
-) -> str:
+    def render(
+        self,
+        conversation_name: str,
+        messages: list[Message],
+        users: dict[int, User],
+    ) -> str:
 
         html: list[str] = [
             "<!DOCTYPE html>",
@@ -75,6 +75,7 @@ def render(
             html.append(
                 self._render_message(
                     message,
+                    users,
                 )
             )
 
@@ -90,6 +91,7 @@ def render(
     def _render_message(
         self,
         message: Message,
+        users: dict[int, User],
     ) -> str:
 
         timestamp = datetime.fromtimestamp(
@@ -102,11 +104,20 @@ def render(
             else "Входящее"
         )
 
+        user = users.get(message.from_id)
+
+        author = (
+            user.full_name
+            if user is not None
+            else f"ID {message.from_id}"
+        )
+
         parts = [
             "<div class='message'>",
             (
                 "<div class='meta'>"
-                f"{timestamp} • {direction} • ID {message.from_id}"
+                f"{timestamp} • {direction} • "
+                f"{escape(author)}"
                 "</div>"
             ),
         ]
@@ -119,6 +130,7 @@ def render(
             parts.append(system_html)
 
         if message.text:
+
             parts.append(
                 (
                     "<div class='text'>"
@@ -130,12 +142,14 @@ def render(
         parts.append(
             self._render_reply_message(
                 message,
+                users,
             )
         )
 
         parts.append(
             self._render_forwarded_messages(
                 message,
+                users,
             )
         )
 
@@ -150,6 +164,7 @@ def render(
             parts.append("<div class='attachments'>")
 
             for attachment in attachments:
+
                 parts.append(
                     self._attachment_renderer.render(
                         attachment,
@@ -159,60 +174,3 @@ def render(
             parts.append("</div>")
 
         parts.append("</div>")
-        return "\n".join(parts)
-
-    def _render_forwarded_messages(
-        self,
-        message: Message,
-    ) -> str:
-
-        forwarded = getattr(
-            message,
-            "fwd_messages",
-            [],
-        )
-
-        if not forwarded:
-            return ""
-
-        parts = [
-            "<div class='forwarded'>",
-            "<div class='forwarded-title'>Пересланные сообщения</div>",
-        ]
-
-        for forwarded_message in forwarded:
-
-            parts.append(
-                self._render_message(
-                    forwarded_message,
-                )
-            )
-
-        parts.append("</div>")
-
-        return "\n".join(parts)
-
-    def _render_reply_message(
-        self,
-        message: Message,
-    ) -> str:
-
-        reply = getattr(
-            message,
-            "reply_message",
-            None,
-        )
-
-        if reply is None:
-            return ""
-
-        return "\n".join(
-            [
-                "<div class='reply'>",
-                "<div class='reply-title'>Ответ на сообщение</div>",
-                self._render_message(
-                    reply,
-                ),
-                "</div>",
-            ]
-        )
