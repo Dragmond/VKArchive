@@ -65,19 +65,35 @@ class HtmlRenderer:
 
         direction = (
             "Исходящее"
-            if message.out
+            if getattr(message, "out", False)
             else "Входящее"
         )
-parts.append(
-    self._render_reply_message(
-        message,
-    )
-)
-       parts.append(
-    self._render_forwarded_messages(
-        message,
-    )
-)
+
+        parts = [
+            "<div class='message'>",
+            (
+                "<div class='meta'>"
+                f"{timestamp} • {direction} • ID {message.from_id}"
+                "</div>"
+            ),
+            (
+                "<div class='text'>"
+                f"{escape(message.text)}"
+                "</div>"
+            ),
+        ]
+
+        parts.append(
+            self._render_reply_message(
+                message,
+            )
+        )
+
+        parts.append(
+            self._render_forwarded_messages(
+                message,
+            )
+        )
 
         attachments = getattr(
             message,
@@ -102,131 +118,128 @@ parts.append(
 
         return "\n".join(parts)
 
-def _render_attachment(
-    self,
-    attachment,
-) -> str:
+    def _render_attachment(
+        self,
+        attachment,
+    ) -> str:
 
-    filename = escape(
-        attachment.filename
-        or attachment.url.split("/")[-1]
-    )
-
-    match attachment.type:
-
-        case "photo":
-
-            return (
-                f"<a href='media/{filename}'>"
-                f"<img src='media/{filename}' "
-                f'loading="lazy"></a>'
-            )
-
-        case "video":
-
-            return (
-                "<div class='attachment'>"
-                f"<video controls width='420' "
-                f"src='media/{filename}'></video>"
-                "</div>"
-            )
-
-        case "voice":
-
-            return (
-                "<div class='attachment'>"
-                f"<audio controls src='media/{filename}'></audio>"
-                "</div>"
-            )
-
-        case "audio":
-
-            return (
-                "<div class='attachment'>"
-                f"🎵 <a href='media/{filename}'>{filename}</a>"
-                "</div>"
-            )
-
-        case "document":
-
-            return (
-                "<div class='attachment'>"
-                f"📄 <a href='media/{filename}'>{filename}</a>"
-                "</div>"
-            )
-
-        case "sticker":
-
-            return (
-                f"<img src='media/{filename}' "
-                "class='sticker'>"
-            )
-
-        case "link":
-
-            return (
-                "<div class='attachment'>"
-                f"🔗 <a href='{escape(attachment.url)}'>"
-                f"{escape(attachment.url)}</a>"
-                "</div>"
-            )
-
-        case _:
-
-            return (
-                "<div class='attachment'>"
-                f"📎 <a href='media/{filename}'>{filename}</a>"
-                "</div>"
-            )
-    def _render_forwarded_messages(
-    self,
-    message,
-) -> str:
-
-    forwarded = getattr(
-        message,
-        "fwd_messages",
-        [],
-    )
-
-    if not forwarded:
-        return ""
-
-    parts = [
-        "<div class='forwarded'>",
-        "<div class='forwarded-title'>Пересланные сообщения</div>",
-    ]
-
-    for forwarded_message in forwarded:
-
-        parts.append(
-            self._render_message(
-                forwarded_message,
-            )
+        filename = escape(
+            attachment.filename
+            or attachment.url.split("/")[-1]
         )
 
-    parts.append("</div>")
+        match attachment.type:
 
-    return "\n".join(parts)
-    def _render_reply_message(
-    self,
-    message,
-) -> str:
+            case "photo":
 
-    reply = getattr(
+                return (
+                    f"<a href='media/{filename}'>"
+                    f"<img src='media/{filename}' loading='lazy'></a>"
+                )
+
+            case "video":
+
+                return (
+                    "<div class='attachment'>"
+                    f"<video controls width='420' src='media/{filename}'></video>"
+                    "</div>"
+                )
+
+            case "voice":
+
+                return (
+                    "<div class='attachment'>"
+                    f"<audio controls src='media/{filename}'></audio>"
+                    "</div>"
+                )
+
+            case "audio":
+
+                return (
+                    "<div class='attachment'>"
+                    f"🎵 <a href='media/{filename}'>{filename}</a>"
+                    "</div>"
+                )
+
+            case "document":
+
+                return (
+                    "<div class='attachment'>"
+                    f"📄 <a href='media/{filename}'>{filename}</a>"
+                    "</div>"
+                )
+
+            case "sticker":
+
+                return (
+                    f"<img src='media/{filename}' class='sticker'>"
+                )
+
+            case "link":
+
+                return (
+                    "<div class='attachment'>"
+                    f"🔗 <a href='{escape(attachment.url)}'>{escape(attachment.url)}</a>"
+                    "</div>"
+                )
+
+            case _:
+
+                return (
+                    "<div class='attachment'>"
+                    f"📎 <a href='media/{filename}'>{filename}</a>"
+                    "</div>"
+                )
+
+    def _render_forwarded_messages(
+        self,
         message,
-        "reply_message",
-        None,
-    )
+    ) -> str:
 
-    if reply is None:
-        return ""
+        forwarded = getattr(
+            message,
+            "fwd_messages",
+            [],
+        )
 
-    parts = [
-        "<div class='reply'>",
-        "<div class='reply-title'>Ответ на сообщение</div>",
-        self._render_message(reply),
-        "</div>",
-    ]
+        if not forwarded:
+            return ""
 
-    return "\n".join(parts)
+        parts = [
+            "<div class='forwarded'>",
+            "<div class='forwarded-title'>Пересланные сообщения</div>",
+        ]
+
+        for forwarded_message in forwarded:
+            parts.append(
+                self._render_message(
+                    forwarded_message,
+                )
+            )
+
+        parts.append("</div>")
+
+        return "\n".join(parts)
+
+    def _render_reply_message(
+        self,
+        message,
+    ) -> str:
+
+        reply = getattr(
+            message,
+            "reply_message",
+            None,
+        )
+
+        if reply is None:
+            return ""
+
+        return "\n".join(
+            [
+                "<div class='reply'>",
+                "<div class='reply-title'>Ответ на сообщение</div>",
+                self._render_message(reply),
+                "</div>",
+            ]
+        )
