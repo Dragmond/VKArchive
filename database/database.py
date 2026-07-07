@@ -1,6 +1,8 @@
 from pathlib import Path
 import sqlite3
 
+from database.message_batch import MessageBatch
+
 
 DATABASE = Path("vkarchive.db")
 
@@ -141,7 +143,28 @@ class Database:
         outgoing: bool,
     ) -> None:
 
-        self.cursor.execute(
+        batch = MessageBatch()
+
+        batch.add(
+            message_id=message_id,
+            peer_id=peer_id,
+            sender_id=sender_id,
+            date=date,
+            text=text,
+            outgoing=outgoing,
+        )
+
+        self.save_messages(batch)
+
+    def save_messages(
+        self,
+        batch: MessageBatch,
+    ) -> None:
+
+        if batch.empty:
+            return
+
+        self.cursor.executemany(
             """
             INSERT INTO messages(
                 id,
@@ -160,14 +183,7 @@ class Database:
                 text = excluded.text,
                 outgoing = excluded.outgoing
             """,
-            (
-                message_id,
-                peer_id,
-                sender_id,
-                date,
-                text,
-                int(outgoing),
-            ),
+            batch.rows,
         )
 
         self.connection.commit()
