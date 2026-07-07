@@ -12,9 +12,17 @@ class AttachmentRenderer:
 
         attachment_type = attachment.get("type", "")
 
-        url = attachment.get("url") or ""
+        url = (
+            attachment.get("url")
+            or attachment.get("vk_url")
+            or ""
+        )
 
-        title = attachment.get("title") or url.split("/")[-1] or attachment_type
+        title = (
+            attachment.get("title")
+            or url.split("/")[-1]
+            or attachment_type
+        )
 
         filename = escape(title)
 
@@ -23,6 +31,9 @@ class AttachmentRenderer:
         match attachment_type:
 
             case "photo":
+
+                if not url:
+                    return ""
 
                 return (
                     f"<a href='{safe_url}'>"
@@ -40,21 +51,33 @@ class AttachmentRenderer:
 
                     return (
                         f"<a href='{safe_url}'>"
-                        f"<img src='{preview}' loading='lazy'>"
+                        f"<img src='{preview}' "
+                        f"loading='lazy'>"
                         "</a>"
                     )
 
                 return (
                     "<div class='attachment'>"
-                    f"🎬 <a href='{safe_url}'>{filename}</a>"
+                    "🎬 "
+                    f"<a href='{safe_url}'>"
+                    f"{filename}"
+                    "</a>"
                     "</div>"
                 )
 
             case "voice":
 
+                if url:
+
+                    return (
+                        "<div class='attachment'>"
+                        f"<audio controls src='{safe_url}'></audio>"
+                        "</div>"
+                    )
+
                 return (
                     "<div class='attachment'>"
-                    f"<audio controls src='{safe_url}'></audio>"
+                    "🎤 Голосовое сообщение"
                     "</div>"
                 )
 
@@ -70,7 +93,10 @@ class AttachmentRenderer:
 
                 return (
                     "<div class='attachment'>"
-                    f"🎵 <a href='{safe_url}'>{filename}</a>"
+                    "🎵 "
+                    f"<a href='{safe_url}'>"
+                    f"{filename}"
+                    "</a>"
                     "</div>"
                 )
 
@@ -86,21 +112,31 @@ class AttachmentRenderer:
 
                 return (
                     "<div class='attachment'>"
-                    f"📄 <a href='{safe_url}'>{filename}</a>"
+                    "📄 "
+                    f"<a href='{safe_url}'>"
+                    f"{filename}"
+                    "</a>"
                     "</div>"
                 )
 
             case "sticker":
 
+                if not url:
+                    return ""
+
                 return (
-                    f"<img src='{safe_url}' class='sticker'>"
+                    f"<img src='{safe_url}' "
+                    "class='sticker'>"
                 )
 
             case "link":
 
                 return (
                     "<div class='attachment'>"
-                    f"🔗 <a href='{safe_url}'>{safe_url}</a>"
+                    "🔗 "
+                    f"<a href='{safe_url}'>"
+                    f"{safe_url}"
+                    "</a>"
                     "</div>"
                 )
 
@@ -108,6 +144,9 @@ class AttachmentRenderer:
 
                 return (
                     "<div class='attachment'>"
-                    f"📎 <a href='{safe_url}'>{filename}</a>"
+                    "📎 "
+                    f"<a href='{safe_url}'>"
+                    f"{filename}"
+                    "</a>"
                     "</div>"
                 )
