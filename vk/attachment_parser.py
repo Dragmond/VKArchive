@@ -121,6 +121,68 @@ class AttachmentParser:
                 item["text"] = data.get("text")
                 item["from_id"] = data.get("from_id")
 
+            elif attachment_type == "gift":
+
+                item["title"] = (
+                    data.get("description")
+                    or "Подарок"
+                )
+
+                thumb = data.get("thumb_256") or data.get("thumb_96")
+
+                if thumb:
+                    item["url"] = thumb
+
+            elif attachment_type == "graffiti":
+
+                item["url"] = data.get("url")
+
+                item["width"] = data.get("width")
+
+                item["height"] = data.get("height")
+
+            elif attachment_type == "story":
+
+                item["title"] = "История"
+
+                photo = data.get("photo", {})
+
+                sizes = photo.get("sizes", [])
+
+                if sizes:
+
+                    largest = max(
+                        sizes,
+                        key=lambda s: (
+                            s.get("width", 0),
+                            s.get("height", 0),
+                        ),
+                    )
+
+                    item["url"] = largest.get("url")
+
+            elif attachment_type == "market":
+
+                item["title"] = data.get("title")
+
+                item["price"] = (
+                    data.get("price", {})
+                    .get("text")
+                )
+
+            elif attachment_type == "market_album":
+
+                item["title"] = data.get("title")
+
+            elif attachment_type == "call":
+
+                item["title"] = (
+                    data.get("state")
+                    or "Звонок"
+                )
+
+                item["duration"] = data.get("duration")
+            
             result.append(item)
 
         return result
