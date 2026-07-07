@@ -6,6 +6,10 @@ from vk.user import User
 
 class UsersService:
 
+    def __init__(self) -> None:
+
+        self._cache: dict[int, User] = {}
+
     def get(
         self,
         user_ids: list[int],
@@ -22,28 +26,61 @@ class UsersService:
         if not ids:
             return {}
 
-        response = client.request(
-            "users.get",
-            user_ids=",".join(
-                map(str, ids),
-            ),
-            fields="photo_100",
-        )
-
         result: dict[int, User] = {}
 
-        for item in response:
+        missing: list[int] = []
 
-            user = User(
-                id=item["id"],
-                first_name=item["first_name"],
-                last_name=item["last_name"],
-                photo=item.get("photo_100"),
+        for user_id in ids:
+
+            cached = self._cache.get(
+                user_id,
             )
 
-            result[user.id] = user
+            if cached is None:
+
+                missing.append(
+                    user_id,
+                )
+
+            else:
+
+                result[user_id] = cached
+
+        if missing:
+
+            response = client.request(
+                "users.get",
+                user_ids=",".join(
+                    map(
+                        str,
+                        missing,
+                    )
+                ),
+                fields="photo_100",
+            )
+
+            for item in response:
+
+                user = User(
+                    id=item["id"],
+                    first_name=item["first_name"],
+                    last_name=item["last_name"],
+                    photo=item.get(
+                        "photo_100",
+                    ),
+                )
+
+                self._cache[user.id] = user
+
+                result[user.id] = user
 
         return result
+
+    def clear_cache(
+        self,
+    ) -> None:
+
+        self._cache.clear()
 
 
 users = UsersService()
