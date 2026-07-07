@@ -66,7 +66,11 @@ class HtmlRenderer:
             if message.out
             else "Входящее"
         )
-
+parts.append(
+    self._render_reply_message(
+        message,
+    )
+)
        parts.append(
     self._render_forwarded_messages(
         message,
@@ -200,5 +204,27 @@ def _render_forwarded_messages(
         )
 
     parts.append("</div>")
+
+    return "\n".join(parts)
+def _render_reply_message(
+    self,
+    message,
+) -> str:
+
+    reply = getattr(
+        message,
+        "reply_message",
+        None,
+    )
+
+    if reply is None:
+        return ""
+
+    parts = [
+        "<div class='reply'>",
+        "<div class='reply-title'>Ответ на сообщение</div>",
+        self._render_message(reply),
+        "</div>",
+    ]
 
     return "\n".join(parts)
