@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from database.database import db
+from database.message_batch import MessageBatch
 from vk.attachment_parser import attachment_parser
 from vk.client import client
 
@@ -53,10 +54,7 @@ class MessagesService:
             ),
             action=item.get("action"),
             reply_message=(
-                self._parse_message(
-                    reply,
-                    peer_id,
-                )
+                self._parse_message(reply, peer_id)
                 if reply
                 else None
             ),
@@ -122,6 +120,10 @@ class MessagesService:
             if not page:
                 break
 
+            batch = MessageBatch()
+
+            page_new: list[Message] = []
+
             for message in reversed(page):
 
                 if (
@@ -131,7 +133,7 @@ class MessagesService:
                     stop = True
                     break
 
-                db.save_message(
+                batch.add(
                     message_id=message.id,
                     peer_id=message.peer_id,
                     sender_id=message.from_id,
@@ -140,9 +142,11 @@ class MessagesService:
                     outgoing=message.out,
                 )
 
-                new_messages.append(
-                    message,
-                )
+                page_new.append(message)
+
+            db.save_messages(batch)
+
+            new_messages.extend(page_new)
 
             if stop:
                 break
