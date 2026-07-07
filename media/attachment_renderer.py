@@ -2,24 +2,26 @@ from __future__ import annotations
 
 from html import escape
 
+from vk.attachment import Attachment
+
 
 class AttachmentRenderer:
 
     def render(
         self,
-        attachment: dict,
+        attachment: Attachment,
     ) -> str:
 
-        attachment_type = attachment.get("type", "")
+        attachment_type = attachment.type
 
         url = (
-            attachment.get("url")
-            or attachment.get("vk_url")
+            attachment.url
+            or attachment.vk_url
             or ""
         )
 
         title = (
-            attachment.get("title")
+            attachment.title
             or url.split("/")[-1]
             or attachment_type
         )
@@ -43,13 +45,16 @@ class AttachmentRenderer:
 
             case "video":
 
-                preview = attachment.get("preview")
+                preview = attachment.extra.get(
+                    "preview",
+                )
 
                 if preview:
 
                     return (
                         f"<a href='{safe_url}'>"
-                        f"<img src='{escape(preview)}' loading='lazy'>"
+                        f"<img src='{escape(preview)}' "
+                        "loading='lazy'>"
                         "</a>"
                     )
 
@@ -65,7 +70,8 @@ class AttachmentRenderer:
 
                     return (
                         "<div class='attachment'>"
-                        f"<audio controls src='{safe_url}'></audio>"
+                        f"<audio controls "
+                        f"src='{safe_url}'></audio>"
                         "</div>"
                     )
 
@@ -77,7 +83,9 @@ class AttachmentRenderer:
 
             case "audio":
 
-                artist = attachment.get("artist")
+                artist = attachment.extra.get(
+                    "artist",
+                )
 
                 if artist:
 
@@ -93,7 +101,9 @@ class AttachmentRenderer:
 
             case "doc":
 
-                ext = attachment.get("ext")
+                ext = attachment.extra.get(
+                    "ext",
+                )
 
                 if ext:
 
@@ -113,7 +123,8 @@ class AttachmentRenderer:
                     return ""
 
                 return (
-                    f"<img src='{safe_url}' class='sticker'>"
+                    f"<img src='{safe_url}' "
+                    "class='sticker'>"
                 )
 
             case "link":
@@ -126,139 +137,20 @@ class AttachmentRenderer:
 
             case "poll":
 
-                votes = attachment.get("votes", 0)
-                answers = attachment.get("answers", 0)
+                votes = attachment.extra.get(
+                    "votes",
+                    0,
+                )
+
+                answers = attachment.extra.get(
+                    "answers",
+                    0,
+                )
 
                 return (
                     "<div class='attachment'>"
                     f"📊 <strong>{filename}</strong><br>"
                     f"Вариантов: {answers}<br>"
                     f"Голосов: {votes}"
-                    "</div>"
-                )
-
-            case "geo":
-
-                place = attachment.get("place")
-                coordinates = attachment.get("title")
-
-                text = place or coordinates or "Геометка"
-
-                return (
-                    "<div class='attachment'>"
-                    f"📍 {escape(text)}"
-                    "</div>"
-                )
-
-            case "wall":
-
-                text = attachment.get("text") or "Запись на стене"
-
-                if len(text) > 250:
-                    text = text[:247] + "..."
-
-                return (
-                    "<div class='attachment'>"
-                    f"📰 {escape(text)}"
-                    "</div>"
-                )
-
-            case "gift":
-
-                return (
-                    "<div class='attachment'>"
-                    f"🎁 {filename}"
-                    "</div>"
-                )
-
-            case "graffiti":
-
-                if url:
-
-                    return (
-                        f"<a href='{safe_url}'>"
-                        f"<img src='{safe_url}' "
-                        "loading='lazy'>"
-                        "</a>"
-                    )
-
-                return (
-                    "<div class='attachment'>"
-                    "🎨 Граффити"
-                    "</div>"
-                )
-
-            case "story":
-
-                if url:
-
-                    return (
-                        f"<a href='{safe_url}'>"
-                        f"<img src='{safe_url}' "
-                        "loading='lazy'>"
-                        "</a>"
-                    )
-
-                return (
-                    "<div class='attachment'>"
-                    "📖 История"
-                    "</div>"
-                )
-
-            case "market":
-
-                price = attachment.get("price")
-
-                if price:
-
-                    return (
-                        "<div class='attachment'>"
-                        f"🛒 <strong>{filename}</strong><br>"
-                        f"{escape(price)}"
-                        "</div>"
-                    )
-
-                return (
-                    "<div class='attachment'>"
-                    f"🛒 {filename}"
-                    "</div>"
-                )
-
-            case "market_album":
-
-                return (
-                    "<div class='attachment'>"
-                    f"📦 {filename}"
-                    "</div>"
-                )
-
-            case "call":
-
-                duration = attachment.get("duration")
-
-                if duration:
-
-                    minutes = duration // 60
-                    seconds = duration % 60
-
-                    return (
-                        "<div class='attachment'>"
-                        f"📞 {filename}<br>"
-                        f"Длительность: "
-                        f"{minutes}:{seconds:02d}"
-                        "</div>"
-                    )
-
-                return (
-                    "<div class='attachment'>"
-                    f"📞 {filename}"
-                    "</div>"
-                )
-        
-            case _:
-
-                return (
-                    "<div class='attachment'>"
-                    f"📎 <a href='{safe_url}'>{filename}</a>"
                     "</div>"
                 )
