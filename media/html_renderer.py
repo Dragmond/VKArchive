@@ -7,6 +7,7 @@ from media.attachment_renderer import AttachmentRenderer
 from media.date_formatter import DateFormatter
 from media.system_message_renderer import SystemMessageRenderer
 from vk.messages import Message
+from vk.user import User
 
 
 class HtmlRenderer:
@@ -16,11 +17,12 @@ class HtmlRenderer:
         self._attachment_renderer = AttachmentRenderer()
         self._system_renderer = SystemMessageRenderer()
 
-    def render(
-        self,
-        conversation_name: str,
-        messages: list[Message],
-    ) -> str:
+def render(
+    self,
+    conversation_name: str,
+    messages: list[Message],
+    users: dict[int, User],
+) -> str:
 
         html: list[str] = [
             "<!DOCTYPE html>",
