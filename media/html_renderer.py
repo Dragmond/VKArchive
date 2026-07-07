@@ -157,3 +157,60 @@ class HtmlRenderer:
             parts.append("</div>")
 
         parts.append("</div>")
+        return "\n".join(parts)
+
+    def _render_forwarded_messages(
+        self,
+        message: Message,
+    ) -> str:
+
+        forwarded = getattr(
+            message,
+            "fwd_messages",
+            [],
+        )
+
+        if not forwarded:
+            return ""
+
+        parts = [
+            "<div class='forwarded'>",
+            "<div class='forwarded-title'>Пересланные сообщения</div>",
+        ]
+
+        for forwarded_message in forwarded:
+
+            parts.append(
+                self._render_message(
+                    forwarded_message,
+                )
+            )
+
+        parts.append("</div>")
+
+        return "\n".join(parts)
+
+    def _render_reply_message(
+        self,
+        message: Message,
+    ) -> str:
+
+        reply = getattr(
+            message,
+            "reply_message",
+            None,
+        )
+
+        if reply is None:
+            return ""
+
+        return "\n".join(
+            [
+                "<div class='reply'>",
+                "<div class='reply-title'>Ответ на сообщение</div>",
+                self._render_message(
+                    reply,
+                ),
+                "</div>",
+            ]
+        )
