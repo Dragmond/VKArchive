@@ -154,3 +154,142 @@ class AttachmentRenderer:
                     f"Голосов: {votes}"
                     "</div>"
                 )
+            case "geo":
+
+                place = attachment.extra.get(
+                    "place",
+                )
+
+                coordinates = attachment.title
+
+                text = (
+                    place
+                    or coordinates
+                    or "Геометка"
+                )
+
+                return (
+                    "<div class='attachment'>"
+                    f"📍 {escape(text)}"
+                    "</div>"
+                )
+
+            case "wall":
+
+                text = (
+                    attachment.extra.get("text")
+                    or "Запись на стене"
+                )
+
+                if len(text) > 250:
+                    text = text[:247] + "..."
+
+                return (
+                    "<div class='attachment'>"
+                    f"📰 {escape(text)}"
+                    "</div>"
+                )
+
+            case "gift":
+
+                return (
+                    "<div class='attachment'>"
+                    f"🎁 {filename}"
+                    "</div>"
+                )
+
+            case "graffiti":
+
+                if url:
+
+                    return (
+                        f"<a href='{safe_url}'>"
+                        f"<img src='{safe_url}' "
+                        "loading='lazy'>"
+                        "</a>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    "🎨 Граффити"
+                    "</div>"
+                )
+
+            case "story":
+
+                if url:
+
+                    return (
+                        f"<a href='{safe_url}'>"
+                        f"<img src='{safe_url}' "
+                        "loading='lazy'>"
+                        "</a>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    "📖 История"
+                    "</div>"
+                )
+
+            case "market":
+
+                price = attachment.extra.get(
+                    "price",
+                )
+
+                if price:
+
+                    return (
+                        "<div class='attachment'>"
+                        f"🛒 <strong>{filename}</strong><br>"
+                        f"{escape(price)}"
+                        "</div>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    f"🛒 {filename}"
+                    "</div>"
+                )
+
+            case "market_album":
+
+                return (
+                    "<div class='attachment'>"
+                    f"📦 {filename}"
+                    "</div>"
+                )
+
+            case "call":
+
+                duration = attachment.extra.get(
+                    "duration",
+                )
+
+                if duration:
+
+                    minutes = duration // 60
+                    seconds = duration % 60
+
+                    return (
+                        "<div class='attachment'>"
+                        f"📞 {filename}<br>"
+                        f"Длительность: "
+                        f"{minutes}:{seconds:02d}"
+                        "</div>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    f"📞 {filename}"
+                    "</div>"
+                )
+
+            case _:
+
+                return (
+                    "<div class='attachment'>"
+                    f"📎 <a href='{safe_url}'>{filename}</a>"
+                    "</div>"
+                )
