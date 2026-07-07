@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(slots=True)
 class MessageBatch:
 
-    rows: list[tuple] = None
-
-    def __post_init__(self) -> None:
-
-        if self.rows is None:
-            self.rows = []
+    rows: list[tuple] = field(
+        default_factory=list,
+    )
 
     def add(
         self,
@@ -33,6 +30,26 @@ class MessageBatch:
                 text,
                 int(outgoing),
             )
+        )
+
+    def extend(
+        self,
+        other: "MessageBatch",
+    ) -> None:
+
+        self.rows.extend(
+            other.rows,
+        )
+
+    def clear(self) -> None:
+
+        self.rows.clear()
+
+    @property
+    def size(self) -> int:
+
+        return len(
+            self.rows,
         )
 
     @property
