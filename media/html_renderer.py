@@ -178,7 +178,7 @@ def _render_attachment(
                 f"📎 <a href='media/{filename}'>{filename}</a>"
                 "</div>"
             )
-def _render_forwarded_messages(
+    def _render_forwarded_messages(
     self,
     message,
 ) -> str:
@@ -208,7 +208,7 @@ def _render_forwarded_messages(
     parts.append("</div>")
 
     return "\n".join(parts)
-def _render_reply_message(
+    def _render_reply_message(
     self,
     message,
 ) -> str:
