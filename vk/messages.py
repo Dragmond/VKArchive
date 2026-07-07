@@ -144,6 +144,9 @@ class MessagesService:
 
                         batch.clear()
 
+                if stop:
+                    break
+
                 if len(page) < page_size:
                     break
 
