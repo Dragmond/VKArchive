@@ -50,10 +50,19 @@ class MessagesService:
         )
 
         return Message(
-            id=item["id"],
-            date=item["date"],
+            id=item.get(
+    "id",
+    0,
+),
+            date=item.get(
+    "date",
+    0,
+),
             peer_id=peer_id,
-            from_id=item["from_id"],
+            from_id=item.get(
+    "from_id",
+    0,
+),
             text=item.get(
                 "text",
                 "",
