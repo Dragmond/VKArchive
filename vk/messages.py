@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from database.database import db
+from vk.attachment_parser import attachment_parser
 from vk.client import client
 
 
@@ -44,9 +45,11 @@ class MessagesService:
             from_id=item.get("from_id", 0),
             text=item.get("text", ""),
             out=bool(item.get("out", 0)),
-            attachments=item.get(
-                "attachments",
-                [],
+            attachments=attachment_parser.parse(
+                item.get(
+                    "attachments",
+                    [],
+                )
             ),
             action=item.get("action"),
             reply_message=(
