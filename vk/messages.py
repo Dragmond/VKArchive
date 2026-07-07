@@ -10,15 +10,10 @@ from vk.client import client
 class Message:
 
     id: int
-
     date: int
-
     peer_id: int
-
     from_id: int
-
     text: str
-
     out: bool
 
     attachments: list[dict]
@@ -40,46 +35,20 @@ class MessagesService:
         peer_id: int,
     ) -> Message:
 
-        reply = item.get(
-            "reply_message",
-        )
-
-        forwarded = item.get(
-            "fwd_messages",
-            [],
-        )
+        reply = item.get("reply_message")
 
         return Message(
-            id=item.get(
-    "id",
-    0,
-),
-            date=item.get(
-    "date",
-    0,
-),
+            id=item.get("id", 0),
+            date=item.get("date", 0),
             peer_id=peer_id,
-            from_id=item.get(
-    "from_id",
-    0,
-),
-            text=item.get(
-                "text",
-                "",
-            ),
-            out=bool(
-                item.get(
-                    "out",
-                    0,
-                )
-            ),
+            from_id=item.get("from_id", 0),
+            text=item.get("text", ""),
+            out=bool(item.get("out", 0)),
             attachments=item.get(
                 "attachments",
                 [],
             ),
-            action=item.get(
-                "action",
-            ),
+            action=item.get("action"),
             reply_message=(
                 self._parse_message(
                     reply,
@@ -93,7 +62,10 @@ class MessagesService:
                     message,
                     peer_id,
                 )
-                for message in forwarded
+                for message in item.get(
+                    "fwd_messages",
+                    [],
+                )
             ],
         )
 
@@ -120,18 +92,23 @@ class MessagesService:
             for item in response["items"]
         ]
 
-    def get_all(
+    def sync(
         self,
         peer_id: int,
     ) -> list[Message]:
 
-        result: list[Message] = []
-
-        offset = 0
+        last_message_id = db.get_last_message_id(
+            peer_id,
+        )
 
         page_size = 200
+        offset = 0
 
-        while True:
+        new_messages: list[Message] = []
+
+        stop = False
+
+        while not stop:
 
             page = self.get_page(
                 peer_id,
@@ -142,50 +119,37 @@ class MessagesService:
             if not page:
                 break
 
-            result.extend(page)
+            for message in reversed(page):
+
+                if (
+                    last_message_id is not None
+                    and message.id <= last_message_id
+                ):
+                    stop = True
+                    break
+
+                db.save_message(
+                    message_id=message.id,
+                    peer_id=message.peer_id,
+                    sender_id=message.from_id,
+                    date=message.date,
+                    text=message.text,
+                    outgoing=message.out,
+                )
+
+                new_messages.append(
+                    message,
+                )
+
+            if stop:
+                break
 
             if len(page) < page_size:
                 break
 
             offset += page_size
 
-        return result
-
-    def sync(
-        self,
-        peer_id: int,
-    ) -> list[Message]:
-
-        last_message_id = db.get_last_message_id(
-            peer_id,
-        )
-
-        new_messages: list[Message] = []
-
-        for message in reversed(
-            self.get_all(
-                peer_id,
-            )
-        ):
-
-            if (
-                last_message_id is not None
-                and message.id <= last_message_id
-            ):
-                continue
-
-            db.save_message(
-                message_id=message.id,
-                peer_id=message.peer_id,
-                sender_id=message.from_id,
-                date=message.date,
-                text=message.text,
-                outgoing=message.out,
-            )
-
-            new_messages.append(
-                message,
-            )
+        new_messages.reverse()
 
         return new_messages
 
