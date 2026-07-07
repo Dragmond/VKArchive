@@ -23,6 +23,8 @@ class Message:
 
     attachments: list[dict]
 
+    action: dict | None = None
+
     reply_message: "Message | None" = None
 
     fwd_messages: list["Message"] = field(
@@ -65,6 +67,9 @@ class MessagesService:
             attachments=item.get(
                 "attachments",
                 [],
+            ),
+            action=item.get(
+                "action",
             ),
             reply_message=(
                 self._parse_message(
@@ -141,9 +146,6 @@ class MessagesService:
         self,
         peer_id: int,
     ) -> list[Message]:
-        """
-        Загружает историю и сохраняет только новые сообщения.
-        """
 
         last_message_id = db.get_last_message_id(
             peer_id,
