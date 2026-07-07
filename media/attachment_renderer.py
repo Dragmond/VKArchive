@@ -163,6 +163,98 @@ class AttachmentRenderer:
                     "</div>"
                 )
 
+            case "gift":
+
+                return (
+                    "<div class='attachment'>"
+                    f"🎁 {filename}"
+                    "</div>"
+                )
+
+            case "graffiti":
+
+                if url:
+
+                    return (
+                        f"<a href='{safe_url}'>"
+                        f"<img src='{safe_url}' "
+                        "loading='lazy'>"
+                        "</a>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    "🎨 Граффити"
+                    "</div>"
+                )
+
+            case "story":
+
+                if url:
+
+                    return (
+                        f"<a href='{safe_url}'>"
+                        f"<img src='{safe_url}' "
+                        "loading='lazy'>"
+                        "</a>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    "📖 История"
+                    "</div>"
+                )
+
+            case "market":
+
+                price = attachment.get("price")
+
+                if price:
+
+                    return (
+                        "<div class='attachment'>"
+                        f"🛒 <strong>{filename}</strong><br>"
+                        f"{escape(price)}"
+                        "</div>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    f"🛒 {filename}"
+                    "</div>"
+                )
+
+            case "market_album":
+
+                return (
+                    "<div class='attachment'>"
+                    f"📦 {filename}"
+                    "</div>"
+                )
+
+            case "call":
+
+                duration = attachment.get("duration")
+
+                if duration:
+
+                    minutes = duration // 60
+                    seconds = duration % 60
+
+                    return (
+                        "<div class='attachment'>"
+                        f"📞 {filename}<br>"
+                        f"Длительность: "
+                        f"{minutes}:{seconds:02d}"
+                        "</div>"
+                    )
+
+                return (
+                    "<div class='attachment'>"
+                    f"📞 {filename}"
+                    "</div>"
+                )
+        
             case _:
 
                 return (
