@@ -101,47 +101,79 @@ class HtmlRenderer:
 
         return "\n".join(parts)
 
-    def _render_attachment(
-        self,
-        attachment,
-    ) -> str:
+def _render_attachment(
+    self,
+    attachment,
+) -> str:
 
-        filename = escape(
-            attachment.filename
-            or attachment.url.split("/")[-1]
-        )
+    filename = escape(
+        attachment.filename
+        or attachment.url.split("/")[-1]
+    )
 
-        match attachment.type:
+    match attachment.type:
 
-            case "photo":
+        case "photo":
 
-                return (
-                    f"<a href='media/{filename}'>"
-                    f"<img src='media/{filename}' "
-                    f"loading='lazy'></a>"
-                )
+            return (
+                f"<a href='media/{filename}'>"
+                f"<img src='media/{filename}' "
+                f'loading="lazy"></a>'
+            )
 
-            case "voice":
+        case "video":
 
-                return (
-                    "<div class='attachment'>"
-                    f"<audio controls src='media/{filename}'></audio>"
-                    "</div>"
-                )
+            return (
+                "<div class='attachment'>"
+                f"<video controls width='420' "
+                f"src='media/{filename}'></video>"
+                "</div>"
+            )
 
-            case "video":
+        case "voice":
 
-                return (
-                    "<div class='attachment'>"
-                    f"<video controls width='420' "
-                    f"src='media/{filename}'></video>"
-                    "</div>"
-                )
+            return (
+                "<div class='attachment'>"
+                f"<audio controls src='media/{filename}'></audio>"
+                "</div>"
+            )
 
-            case _:
+        case "audio":
 
-                return (
-                    "<div class='attachment'>"
-                    f"<a href='media/{filename}'>{filename}</a>"
-                    "</div>"
-                )
+            return (
+                "<div class='attachment'>"
+                f"🎵 <a href='media/{filename}'>{filename}</a>"
+                "</div>"
+            )
+
+        case "document":
+
+            return (
+                "<div class='attachment'>"
+                f"📄 <a href='media/{filename}'>{filename}</a>"
+                "</div>"
+            )
+
+        case "sticker":
+
+            return (
+                f"<img src='media/{filename}' "
+                "class='sticker'>"
+            )
+
+        case "link":
+
+            return (
+                "<div class='attachment'>"
+                f"🔗 <a href='{escape(attachment.url)}'>"
+                f"{escape(attachment.url)}</a>"
+                "</div>"
+            )
+
+        case _:
+
+            return (
+                "<div class='attachment'>"
+                f"📎 <a href='media/{filename}'>{filename}</a>"
+                "</div>"
+            )
