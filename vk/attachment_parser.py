@@ -31,14 +31,10 @@ class AttachmentParser:
             owner = data.get("owner_id")
             item_id = data.get("id")
 
-            if (
-                owner is not None
-                and item_id is not None
-            ):
-
+            if owner is not None and item_id is not None:
                 item["vk_url"] = (
-                    f"https://vk.com/{attachment_type}"
-                    f"{owner}_{item_id}"
+                    f"https://vk.com/"
+                    f"{attachment_type}{owner}_{item_id}"
                 )
 
             if attachment_type == "photo":
@@ -90,6 +86,40 @@ class AttachmentParser:
 
                 item["ext"] = data.get("ext")
                 item["size"] = data.get("size")
+
+            elif attachment_type == "link":
+
+                item["url"] = data.get("url")
+                item["title"] = (
+                    data.get("title")
+                    or data.get("caption")
+                    or data.get("url")
+                )
+
+            elif attachment_type == "poll":
+
+                item["title"] = data.get("question")
+                item["votes"] = data.get("votes")
+                item["answers"] = len(
+                    data.get("answers", [])
+                )
+
+            elif attachment_type == "geo":
+
+                coordinates = data.get("coordinates")
+
+                if coordinates:
+                    item["title"] = coordinates
+
+                place = data.get("place")
+
+                if place:
+                    item["place"] = place.get("title")
+
+            elif attachment_type == "wall":
+
+                item["text"] = data.get("text")
+                item["from_id"] = data.get("from_id")
 
             result.append(item)
 
