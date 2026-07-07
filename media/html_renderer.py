@@ -3,10 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from html import escape
 
+from media.attachment_renderer import AttachmentRenderer
 from vk.messages import Message
 
 
 class HtmlRenderer:
+
+    def __init__(self) -> None:
+
+        self._attachment_renderer = AttachmentRenderer()
 
     def render(
         self,
@@ -43,7 +48,11 @@ class HtmlRenderer:
         ]
 
         for message in messages:
-            html.append(self._render_message(message))
+            html.append(
+                self._render_message(
+                    message,
+                )
+            )
 
         html.extend(
             [
@@ -60,7 +69,7 @@ class HtmlRenderer:
     ) -> str:
 
         timestamp = datetime.fromtimestamp(
-            message.date
+            message.date,
         ).strftime("%Y-%m-%d %H:%M:%S")
 
         direction = (
@@ -106,8 +115,9 @@ class HtmlRenderer:
             parts.append("<div class='attachments'>")
 
             for attachment in attachments:
+
                 parts.append(
-                    self._render_attachment(
+                    self._attachment_renderer.render(
                         attachment,
                     )
                 )
@@ -117,79 +127,6 @@ class HtmlRenderer:
         parts.append("</div>")
 
         return "\n".join(parts)
-
-    def _render_attachment(
-        self,
-        attachment,
-    ) -> str:
-
-        filename = escape(
-            attachment.filename
-            or attachment.url.split("/")[-1]
-        )
-
-        match attachment.type:
-
-            case "photo":
-
-                return (
-                    f"<a href='media/{filename}'>"
-                    f"<img src='media/{filename}' loading='lazy'></a>"
-                )
-
-            case "video":
-
-                return (
-                    "<div class='attachment'>"
-                    f"<video controls width='420' src='media/{filename}'></video>"
-                    "</div>"
-                )
-
-            case "voice":
-
-                return (
-                    "<div class='attachment'>"
-                    f"<audio controls src='media/{filename}'></audio>"
-                    "</div>"
-                )
-
-            case "audio":
-
-                return (
-                    "<div class='attachment'>"
-                    f"🎵 <a href='media/{filename}'>{filename}</a>"
-                    "</div>"
-                )
-
-            case "document":
-
-                return (
-                    "<div class='attachment'>"
-                    f"📄 <a href='media/{filename}'>{filename}</a>"
-                    "</div>"
-                )
-
-            case "sticker":
-
-                return (
-                    f"<img src='media/{filename}' class='sticker'>"
-                )
-
-            case "link":
-
-                return (
-                    "<div class='attachment'>"
-                    f"🔗 <a href='{escape(attachment.url)}'>{escape(attachment.url)}</a>"
-                    "</div>"
-                )
-
-            case _:
-
-                return (
-                    "<div class='attachment'>"
-                    f"📎 <a href='media/{filename}'>{filename}</a>"
-                    "</div>"
-                )
 
     def _render_forwarded_messages(
         self,
@@ -211,6 +148,7 @@ class HtmlRenderer:
         ]
 
         for forwarded_message in forwarded:
+
             parts.append(
                 self._render_message(
                     forwarded_message,
@@ -239,7 +177,9 @@ class HtmlRenderer:
             [
                 "<div class='reply'>",
                 "<div class='reply-title'>Ответ на сообщение</div>",
-                self._render_message(reply),
+                self._render_message(
+                    reply,
+                ),
                 "</div>",
             ]
         )
