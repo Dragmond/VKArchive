@@ -6,24 +6,25 @@ from dataclasses import dataclass
 @dataclass(slots=True)
 class HistoryState:
 
-    last_message_id: int = 0
+    last_message_id: int | None = None
+
+    requests: int = 0
 
     loaded_messages: int = 0
 
-    api_requests: int = 0
-
-    @property
-    def has_history(self) -> bool:
-
-        return self.last_message_id > 0
+    stopped: bool = False
 
     def register_request(self) -> None:
 
-        self.api_requests += 1
+        self.requests += 1
 
-    def register_messages(
+    def register_page(
         self,
         count: int,
     ) -> None:
 
         self.loaded_messages += count
+
+    def stop(self) -> None:
+
+        self.stopped = True
