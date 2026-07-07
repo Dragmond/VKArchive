@@ -5,6 +5,7 @@ from html import escape
 
 from media.attachment_renderer import AttachmentRenderer
 from media.date_formatter import DateFormatter
+from media.system_message_renderer import SystemMessageRenderer
 from vk.messages import Message
 
 
@@ -13,6 +14,7 @@ class HtmlRenderer:
     def __init__(self) -> None:
 
         self._attachment_renderer = AttachmentRenderer()
+        self._system_renderer = SystemMessageRenderer()
 
     def render(
         self,
@@ -33,6 +35,7 @@ class HtmlRenderer:
             ".day-divider{margin:28px 0 18px;padding:8px 14px;background:#303134;border-radius:8px;text-align:center;font-weight:bold;color:#ddd;}",
             ".message{padding:12px;border-bottom:1px solid #444;}",
             ".meta{color:#9aa0a6;font-size:12px;margin-bottom:6px;}",
+            ".system-message{margin:8px 0;padding:8px 12px;background:#39424e;border-left:4px solid #8ab4f8;border-radius:6px;color:#d7e3ff;font-size:13px;}",
             ".text{white-space:pre-wrap;word-break:break-word;}",
             ".attachments{margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;}",
             ".attachments img{max-width:260px;border-radius:8px;}",
@@ -53,9 +56,7 @@ class HtmlRenderer:
 
         for message in messages:
 
-            day = DateFormatter.key(
-                message.date,
-            )
+            day = DateFormatter.key(message.date)
 
             if day != current_day:
 
@@ -106,12 +107,23 @@ class HtmlRenderer:
                 f"{timestamp} • {direction} • ID {message.from_id}"
                 "</div>"
             ),
-            (
-                "<div class='text'>"
-                f"{escape(message.text)}"
-                "</div>"
-            ),
         ]
+
+        system_html = self._system_renderer.render(
+            getattr(message, "action", None),
+        )
+
+        if system_html:
+            parts.append(system_html)
+
+        if message.text:
+            parts.append(
+                (
+                    "<div class='text'>"
+                    f"{escape(message.text)}"
+                    "</div>"
+                )
+            )
 
         parts.append(
             self._render_reply_message(
@@ -136,7 +148,6 @@ class HtmlRenderer:
             parts.append("<div class='attachments'>")
 
             for attachment in attachments:
-
                 parts.append(
                     self._attachment_renderer.render(
                         attachment,
@@ -146,61 +157,3 @@ class HtmlRenderer:
             parts.append("</div>")
 
         parts.append("</div>")
-
-        return "\n".join(parts)
-
-    def _render_forwarded_messages(
-        self,
-        message,
-    ) -> str:
-
-        forwarded = getattr(
-            message,
-            "fwd_messages",
-            [],
-        )
-
-        if not forwarded:
-            return ""
-
-        parts = [
-            "<div class='forwarded'>",
-            "<div class='forwarded-title'>Пересланные сообщения</div>",
-        ]
-
-        for forwarded_message in forwarded:
-
-            parts.append(
-                self._render_message(
-                    forwarded_message,
-                )
-            )
-
-        parts.append("</div>")
-
-        return "\n".join(parts)
-
-    def _render_reply_message(
-        self,
-        message,
-    ) -> str:
-
-        reply = getattr(
-            message,
-            "reply_message",
-            None,
-        )
-
-        if reply is None:
-            return ""
-
-        return "\n".join(
-            [
-                "<div class='reply'>",
-                "<div class='reply-title'>Ответ на сообщение</div>",
-                self._render_message(
-                    reply,
-                ),
-                "</div>",
-            ]
-        )
