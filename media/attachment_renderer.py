@@ -47,21 +47,15 @@ class AttachmentRenderer:
 
                 if preview:
 
-                    preview = escape(preview)
-
                     return (
                         f"<a href='{safe_url}'>"
-                        f"<img src='{preview}' "
-                        f"loading='lazy'>"
+                        f"<img src='{escape(preview)}' loading='lazy'>"
                         "</a>"
                     )
 
                 return (
                     "<div class='attachment'>"
-                    "🎬 "
-                    f"<a href='{safe_url}'>"
-                    f"{filename}"
-                    "</a>"
+                    f"🎬 <a href='{safe_url}'>{filename}</a>"
                     "</div>"
                 )
 
@@ -93,10 +87,7 @@ class AttachmentRenderer:
 
                 return (
                     "<div class='attachment'>"
-                    "🎵 "
-                    f"<a href='{safe_url}'>"
-                    f"{filename}"
-                    "</a>"
+                    f"🎵 <a href='{safe_url}'>{filename}</a>"
                     "</div>"
                 )
 
@@ -112,10 +103,7 @@ class AttachmentRenderer:
 
                 return (
                     "<div class='attachment'>"
-                    "📄 "
-                    f"<a href='{safe_url}'>"
-                    f"{filename}"
-                    "</a>"
+                    f"📄 <a href='{safe_url}'>{filename}</a>"
                     "</div>"
                 )
 
@@ -125,18 +113,53 @@ class AttachmentRenderer:
                     return ""
 
                 return (
-                    f"<img src='{safe_url}' "
-                    "class='sticker'>"
+                    f"<img src='{safe_url}' class='sticker'>"
                 )
 
             case "link":
 
                 return (
                     "<div class='attachment'>"
-                    "🔗 "
-                    f"<a href='{safe_url}'>"
-                    f"{safe_url}"
-                    "</a>"
+                    f"🔗 <a href='{safe_url}'>{filename}</a>"
+                    "</div>"
+                )
+
+            case "poll":
+
+                votes = attachment.get("votes", 0)
+                answers = attachment.get("answers", 0)
+
+                return (
+                    "<div class='attachment'>"
+                    f"📊 <strong>{filename}</strong><br>"
+                    f"Вариантов: {answers}<br>"
+                    f"Голосов: {votes}"
+                    "</div>"
+                )
+
+            case "geo":
+
+                place = attachment.get("place")
+                coordinates = attachment.get("title")
+
+                text = place or coordinates or "Геометка"
+
+                return (
+                    "<div class='attachment'>"
+                    f"📍 {escape(text)}"
+                    "</div>"
+                )
+
+            case "wall":
+
+                text = attachment.get("text") or "Запись на стене"
+
+                if len(text) > 250:
+                    text = text[:247] + "..."
+
+                return (
+                    "<div class='attachment'>"
+                    f"📰 {escape(text)}"
                     "</div>"
                 )
 
@@ -144,9 +167,6 @@ class AttachmentRenderer:
 
                 return (
                     "<div class='attachment'>"
-                    "📎 "
-                    f"<a href='{safe_url}'>"
-                    f"{filename}"
-                    "</a>"
+                    f"📎 <a href='{safe_url}'>{filename}</a>"
                     "</div>"
                 )
