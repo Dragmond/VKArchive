@@ -91,3 +91,67 @@ class ArchiveExporter:
         group_map = groups.get(
             list(group_ids),
         )
+        for message in messages:
+
+            self._emit("message")
+
+            mapped = media_mapper.map(
+                message.attachments,
+            )
+
+            media.extend(
+                mapped,
+            )
+
+            for _ in mapped:
+
+                self._emit(
+                    "file",
+                )
+
+        output = folder / "messages.html"
+
+        output.write_text(
+            self._renderer.render(
+                conversation_name,
+                messages,
+                user_map,
+                group_map,
+            ),
+            encoding="utf-8",
+        )
+
+        if media:
+
+            self.export_media(
+                conversation_name,
+                media,
+            )
+
+        return output
+
+    def export_media(
+        self,
+        conversation_name: str,
+        media: list[MediaFile],
+    ) -> Path:
+
+        folder = (
+            self._root
+            / self._safe_name(
+                conversation_name,
+            )
+            / "media"
+        )
+
+        download_manager.download_many(
+            media,
+            folder,
+        )
+
+        return folder
+
+
+__all__ = [
+    "ArchiveExporter",
+]
