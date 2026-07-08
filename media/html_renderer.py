@@ -6,6 +6,7 @@ from html import escape
 from media.attachment_renderer import AttachmentRenderer
 from media.date_formatter import DateFormatter
 from media.system_message_renderer import SystemMessageRenderer
+from vk.group import Group
 from vk.messages import Message
 from vk.user import User
 
@@ -22,6 +23,7 @@ class HtmlRenderer:
         conversation_name: str,
         messages: list[Message],
         users: dict[int, User],
+        groups: dict[int, Group],
     ) -> str:
 
         html: list[str] = [
@@ -76,6 +78,7 @@ class HtmlRenderer:
                 self._render_message(
                     message,
                     users,
+                    groups,
                 )
             )
 
@@ -92,6 +95,7 @@ class HtmlRenderer:
         self,
         message: Message,
         users: dict[int, User],
+        groups: dict[int, Group],
     ) -> str:
 
         timestamp = datetime.fromtimestamp(
@@ -104,13 +108,29 @@ class HtmlRenderer:
             else "Входящее"
         )
 
-        user = users.get(message.from_id)
+        if message.from_id > 0:
 
-        author = (
-            user.full_name
-            if user is not None
-            else f"ID {message.from_id}"
-        )
+            user = users.get(message.from_id)
+
+            author = (
+                user.full_name
+                if user is not None
+                else f"ID {message.from_id}"
+            )
+
+        elif message.from_id < 0:
+
+            group = groups.get(abs(message.from_id))
+
+            author = (
+                group.name
+                if group is not None
+                else f"ID {message.from_id}"
+            )
+
+        else:
+
+            author = "Система"
 
         parts = [
             "<div class='message'>",
@@ -143,6 +163,7 @@ class HtmlRenderer:
             self._render_reply_message(
                 message,
                 users,
+                groups,
             )
         )
 
@@ -150,6 +171,7 @@ class HtmlRenderer:
             self._render_forwarded_messages(
                 message,
                 users,
+                groups,
             )
         )
 
@@ -174,72 +196,3 @@ class HtmlRenderer:
             parts.append("</div>")
 
         parts.append("</div>")
-        return "\n".join(parts)
-
-    def _render_forwarded_messages(
-        self,
-        message: Message,
-        users: dict[int, User],
-    ) -> str:
-
-        forwarded = getattr(
-            message,
-            "fwd_messages",
-            [],
-        )
-
-        if not forwarded:
-            return ""
-
-        parts = [
-            "<div class='forwarded'>",
-            (
-                "<div class='forwarded-title'>"
-                "Пересланные сообщения"
-                "</div>"
-            ),
-        ]
-
-        for forwarded_message in forwarded:
-
-            parts.append(
-                self._render_message(
-                    forwarded_message,
-                    users,
-                )
-            )
-
-        parts.append("</div>")
-
-        return "\n".join(parts)
-
-    def _render_reply_message(
-        self,
-        message: Message,
-        users: dict[int, User],
-    ) -> str:
-
-        reply = getattr(
-            message,
-            "reply_message",
-            None,
-        )
-
-        if reply is None:
-            return ""
-
-        return "\n".join(
-            [
-                "<div class='reply'>",
-                (
-                    "<div class='reply-title'>"
-                    "Ответ на сообщение"
-                    "</div>"
-                ),
-                self._render_message(
-                    reply,
-                    users,
-                ),
-                "</div>",
-            ]
-        )
